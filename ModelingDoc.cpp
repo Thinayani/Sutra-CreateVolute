@@ -118,7 +118,7 @@ BEGIN_MESSAGE_MAP(CModelingDoc, OCC_3dBaseDoc)
 	ON_COMMAND(ID_BOTTLE, OnBottle)
 	ON_COMMAND(ID_BUTTON_STEP, OnStep)
 	ON_COMMAND(ID_BUTTON_BOX, OnCreateBox)
-	ON_COMMAND(ID_BUTTON_VOLUTE, OnCreateVol)
+	ON_COMMAND(ID_BUTTON_VOLUTE, OnCreateVolute)
 
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -310,7 +310,7 @@ TopoDS_Wire GenerateVolute::RotateWire(TopoDS_Wire wire, Standard_Real angle)
 	return newWire;
 }
 
-// Creating an angles according to the rotation of the cross-sections
+// Creating an angle list according to the rotation of the cross-sections
 std::vector<double> GenerateVolute::CreateAngleVector()
 {
 	Standard_Real angleInDegrees = 360 / my_numOfSections;
@@ -341,34 +341,13 @@ std::vector<TopoDS_Wire> GenerateVolute::RotateCrossSections(std::vector<TopoDS_
 	return rotatedWireList;
 }
 
-TopoDS_Wire GenerateVolute::GetLargest2dFilletWire()
-{
-	std::vector<TopoDS_Wire> wires;
-	TopoDS_Wire wire;
-	BRepLib_MakeWire wireMaker;
-	
-	wires.push_back(rotated2dFilletWireWithoutBase[0]);
-	BRepTools::Write(rotated2dFilletWireWithoutBase[0], "rotated2dFilletWireWithoutBase[0].brep");
-	wires.push_back(BaseRotatedWire[0]);
-	BRepTools::Write(BaseRotatedWire[0], "BaseRotatedWire[0].brep");
-
-	for (int i = 0; i < wires.size(); i++)
-	{
-		wireMaker.Add(wires[i]);
-	}
-	wire = wireMaker.Wire();
-
-	return wire;
-}
-
-
-// Getting the compund shape with the rotated wires
+// Getting the compound shape with the rotated wires
 TopoDS_Shape GenerateVolute::CreateCompoundShape(std::vector<TopoDS_Wire> list)
 {
 	TopoDS_Compound compoundShape;
 	BRep_Builder builder_com;
 	builder_com.MakeCompound(compoundShape);
-	
+
 	for (int i = 0; i < list.size(); i++)
 	{
 		builder_com.Add(compoundShape, list[i]);
@@ -382,7 +361,7 @@ TopoDS_Shape GenerateVolute::CreateShellThruSect(std::vector<TopoDS_Wire> wireVe
 {
 	BRepOffsetAPI_ThruSections BTS1(Standard_False, Standard_False, 1.0e-10);
 	BTS1.SetMaxDegree(2);
-	
+
 	for (int i = 0; i <= my_numOfSections; i++)
 	{
 		if (angleVec[i] >= startAngle && angleVec[i - 1] < endAngle)
@@ -393,7 +372,7 @@ TopoDS_Shape GenerateVolute::CreateShellThruSect(std::vector<TopoDS_Wire> wireVe
 	}
 	BTS1.Build();
 	TopoDS_Shape shellShape = BTS1.Shape();
-	
+
 	return shellShape;
 }
 
@@ -472,7 +451,7 @@ gp_Pnt GenerateVolute::GetMiddlePoint()
 	return centre_pnt;
 }
 
-// Create a square
+// Create a square for the exit plane
 TopoDS_Wire GenerateVolute::CreateSquareToGetExitPipe(gp_Pnt centrePnt, double area)
 {
 	//edgesOfSquare.clear();
@@ -485,7 +464,7 @@ TopoDS_Wire GenerateVolute::CreateSquareToGetExitPipe(gp_Pnt centrePnt, double a
 	gp_Pnt p2(centrePnt.X() - height, 0, centrePnt.Z() + height);
 	gp_Pnt p3(centrePnt.X() + height, 0, centrePnt.Z() - height);
 	gp_Pnt p4(centrePnt.X() + height, 0, centrePnt.Z() + height);
-	
+
 	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(p1, p2);
 	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(p1, p3);
 	TopoDS_Edge Edge3 = BRepBuilderAPI_MakeEdge(p3, p4);
@@ -518,9 +497,30 @@ TopoDS_Wire GenerateVolute::CreateSquareToGetExitPipe(gp_Pnt centrePnt, double a
 	return wire;
 }
 
+// Getting the largest 2D Filleted wire 
+TopoDS_Wire GenerateVolute::GetLargest2dFilletWire()
+{
+	std::vector<TopoDS_Wire> wires;
+	TopoDS_Wire wire;
+	BRepLib_MakeWire wireMaker;
+	
+	wires.push_back(rotated2dFilletWireWithoutBase[0]);
+	BRepTools::Write(rotated2dFilletWireWithoutBase[0], "rotated2dFilletWireWithoutBase[0].brep");
+	wires.push_back(BaseRotatedWire[0]);
+	BRepTools::Write(BaseRotatedWire[0], "BaseRotatedWire[0].brep");
+
+	for (int i = 0; i < wires.size(); i++)
+	{
+		wireMaker.Add(wires[i]);
+	}
+	wire = wireMaker.Wire();
+
+	return wire;
+}
+
+// Getting the two vertices at the two ends of an edge
 void GenerateVolute::getVerticesFromEdges()
 {
-	
 	std::vector<TopoDS_Vertex> vertexVec1;
 	std::vector<TopoDS_Vertex> vertexVec2;
 	std::vector<TopoDS_Vertex> vertexVec3;
@@ -568,6 +568,25 @@ void GenerateVolute::getVerticesFromEdges()
 	}
 }
 
+// Getting the common point of two vertices
+gp_Pnt GenerateVolute::getCommonPoint(std::vector<gp_Pnt> pointVec1, std::vector<gp_Pnt> pointVec2)
+{
+	gp_Pnt commonPoint;
+	for (int j = 0; j < pointVec1.size(); j++)
+	{
+		for (int k = 0; k < pointVec2.size(); k++)
+		{
+			if (pointVec1[j].Distance(pointVec2[k]) < 1.0e-6)
+			{
+				commonPoint = pointVec1[j];
+				BRepTools::Write(BRepBuilderAPI_MakeVertex(commonPoint), "commonvertex.brep");
+			}
+		}
+	}
+	return commonPoint;
+}
+
+// Applying 2D Fillets for the rectangle
 std::vector<TopoDS_Edge> GenerateVolute::create2dFilletsForSquare(double radius)
 {
 	gp_Pnt commonPoint1 = getCommonPoint(pointVec1, pointVec2);
@@ -662,23 +681,7 @@ std::vector<TopoDS_Edge> GenerateVolute::create2dFilletsForSquare(double radius)
 	return edgeVec;
 }
 
-gp_Pnt GenerateVolute::getCommonPoint(std::vector<gp_Pnt> pointVec1, std::vector<gp_Pnt> pointVec2)
-{
-	gp_Pnt commonPoint;
-	for (int j = 0; j < pointVec1.size(); j++)
-	{
-		for (int k = 0; k < pointVec2.size(); k++)
-		{
-			if (pointVec1[j].Distance(pointVec2[k]) < 1.0e-6)
-			{
-				commonPoint = pointVec1[j];
-				BRepTools::Write(BRepBuilderAPI_MakeVertex(commonPoint), "commonvertex.brep");
-			}
-		}
-	}
-	return commonPoint;
-}
-
+// Create the 2D Filleted wire
 TopoDS_Wire GenerateVolute::Create2dWire(std::vector<TopoDS_Edge> edgeVec)
 {
 	std::vector<TopoDS_Wire> wires;
@@ -700,6 +703,7 @@ TopoDS_Wire GenerateVolute::Create2dWire(std::vector<TopoDS_Edge> edgeVec)
 	return wire;
 }
 
+// Create circular exit wire
 TopoDS_Wire GenerateVolute::CreateCircleToGetExitPipe(gp_Pnt centrePnt, double area)
 {
 	std::vector<TopoDS_Wire> wires;
@@ -724,7 +728,7 @@ TopoDS_Wire GenerateVolute::CreateCircleToGetExitPipe(gp_Pnt centrePnt, double a
 	return wire;
 }
 
-// Creating square from filleted exit pipe
+// Creating square from 3D filleted exit pipe
 TopoDS_Face GenerateVolute::CreateSquareToFormFilletPipe(std::vector<TopoDS_Shape> exitPipe)
 {
 	std::vector<TopoDS_Wire> wires;
@@ -781,7 +785,7 @@ TopoDS_Wire GenerateVolute::GetTranslationOfWire(TopoDS_Shape shape, gp_Vec vec)
 	return wire;
 }
 
-// Get the filleted wire for translated square
+// Get the 3D filleted wire for translated square
 TopoDS_Wire GenerateVolute::GetFilletedWireForTrans(TopoDS_Shape shape)
 {
 	TopoDS_Wire Wire;
@@ -921,7 +925,7 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateSolidList(std::vector<TopoDS_Wir
 	return my_solidVector;
 }
 
-// boolean cut without fillets
+// boolean cut for a shell without fillets
 TopoDS_Shape GenerateVolute::GetSimpleBooleanResult(TopoDS_Shape shape, TopoDS_Solid solid)
 {
 	TopoDS_Shape result;
@@ -935,7 +939,7 @@ TopoDS_Shape GenerateVolute::GetSimpleBooleanResult(TopoDS_Shape shape, TopoDS_S
 	return result;
 }
 
-// boolean cut with fillets
+// boolean cut for a shell with fillets
 TopoDS_Shape GenerateVolute::GetSimpleBooleanResultForFilletedShapes(TopoDS_Shape shape, TopoDS_Shape solid)
 {
 	TopoDS_Shape result;
@@ -949,7 +953,7 @@ TopoDS_Shape GenerateVolute::GetSimpleBooleanResultForFilletedShapes(TopoDS_Shap
 	return result;
 }
 
-// boolean cut with two solids
+// boolean cut using two solids
 TopoDS_Shape GenerateVolute::GetBooleanResultForSolids(TopoDS_Shape shape, TopoDS_Shape solid)
 {
 	TopoDS_Shape result;
@@ -963,7 +967,7 @@ TopoDS_Shape GenerateVolute::GetBooleanResultForSolids(TopoDS_Shape shape, TopoD
 	return result;
 }
 
-// boolean fuse with two solids
+// boolean fuse using two two solids
 TopoDS_Shape GenerateVolute::GetBooleanFuseForSolids(TopoDS_Shape shape, TopoDS_Shape solid)
 {
 	TopoDS_Shape result;
@@ -1019,7 +1023,7 @@ std::vector<TopoDS_Face> GenerateVolute::CreateInputPlaneFaces(std::vector<TopoD
 	return my_inputPlaneFaceList;
 }
 
-// sewing scroll shapes and exit pipe
+// sewing scroll shapes, exit pipe and input planes
 TopoDS_Shape GenerateVolute::SewBaseScrollWithExitPipe(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> inputPlaneList, std::vector<TopoDS_Shape> exitPipe, std::vector<TopoDS_Face> exitPlane, double tolerance)
 {
 	BRepBuilderAPI_Sewing sewer;
@@ -1096,7 +1100,7 @@ TopoDS_Shape GenerateVolute::SewBaseScrollWithExitPipe(std::vector<TopoDS_Shape>
 	return sewedShape;
 }
 
-// sewing all the faces of the volute
+// sewing all the 'faces' of the volute
 TopoDS_Shape GenerateVolute::SewVoluteFaces(std::vector<TopoDS_Face> sewScroll, std::vector<TopoDS_Face> baseScroll, std::vector<TopoDS_Face> exitPipe, std::vector<TopoDS_Face> exitPlane, double tolerance)
 {
 	BRepBuilderAPI_Sewing sewer;
@@ -1137,7 +1141,7 @@ TopoDS_Shape GenerateVolute::SewVoluteFaces(std::vector<TopoDS_Face> sewScroll, 
 	return sewedShape;
 }
 
-// sewing the solid shapes
+// sewing the solid scrolls and solid exit pipe
 TopoDS_Shape GenerateVolute::SewSolidVolute(std::vector<TopoDS_Shape> sewScroll, std::vector<TopoDS_Shape> exitPipe, double tolerance)
 {
 	BRepBuilderAPI_Sewing sewer;
@@ -1169,7 +1173,6 @@ TopoDS_Shape GenerateVolute::SewSolidVolute(std::vector<TopoDS_Shape> sewScroll,
 // iterating the shapes to get faces
 std::vector<TopoDS_Face> GenerateVolute::GetFacesFromShapes(std::vector<TopoDS_Shape> shapeVec)
 {
-	
 	TopoDS_Face face;
 	std::vector<TopoDS_Face> faceList;
 	faceList.clear();
@@ -1187,25 +1190,25 @@ std::vector<TopoDS_Face> GenerateVolute::GetFacesFromShapes(std::vector<TopoDS_S
 	return faceList;
 }
 
-// Creating a shell Vector after the boolean cut
+// Creating a shell Vector with the boolean cut of small scroll
 std::vector<TopoDS_Shape> GenerateVolute::CreateShellVectorAfterBooleanCut()
 {
-	std::vector<TopoDS_Shape> shellVectorAfterBooleanCut;
-	shellVectorAfterBooleanCut.clear();
+	std::vector<TopoDS_Shape> shellVectorWithBooleanCut;
+	shellVectorWithBooleanCut.clear();
 
 	// adding exitPipeBooleanCut to a separate vector
 	my_vectorExitPipeBooleanCut.push_back(my_exitPipeBooleanCut);
 
-	shellVectorAfterBooleanCut.push_back(my_exitPipeBooleanCut);
-	shellVectorAfterBooleanCut.push_back(my_SmallShellBooleanCut);
-	shellVectorAfterBooleanCut.push_back(my_shellVector[2]);
+	shellVectorWithBooleanCut.push_back(my_exitPipeBooleanCut);
+	shellVectorWithBooleanCut.push_back(my_SmallShellBooleanCut);
+	shellVectorWithBooleanCut.push_back(my_shellVector[2]);
 	BRepTools::Write(my_shellVector[2], "testShell2.brep");
-	shellVectorAfterBooleanCut.push_back(my_shellVector[1]);
+	shellVectorWithBooleanCut.push_back(my_shellVector[1]);
 	BRepTools::Write(my_shellVector[1], "tetsShell3.brep");
-	shellVectorAfterBooleanCut.push_back(my_shellVector[0]);
+	shellVectorWithBooleanCut.push_back(my_shellVector[0]);
 	BRepTools::Write(my_shellVector[0], "testShell4.brep");
 
-	return shellVectorAfterBooleanCut;
+	return shellVectorWithBooleanCut;
 }
 
 // Creating a solid scroll vector with the boolean cut
@@ -1303,6 +1306,7 @@ TopoDS_Solid GenerateVolute::mkSolidOfSewedVoluteWithExitPipe(TopoDS_Shape volut
 	return sewedSolid;
 }
 
+// apply 2D fillets to the cross sections without base
 TopoDS_Wire GenerateVolute::Apply2dFilletsForWireWithoutBase(TopoDS_Wire wire, double radius)
 {
 	std::vector<TopoDS_Edge> edgeVec;
@@ -1442,6 +1446,7 @@ TopoDS_Wire GenerateVolute::Apply2dFilletsForWireWithoutBase(TopoDS_Wire wire, d
 	return wholeWire;
 }
 
+// create wire vector applying 2D fillets for the cross sections without base
 std::vector<TopoDS_Wire> GenerateVolute::createFilletedCrossSections(std::vector<TopoDS_Wire> wireVec)
 {
 	TopoDS_Wire filleted2dwire;
@@ -1455,6 +1460,31 @@ std::vector<TopoDS_Wire> GenerateVolute::createFilletedCrossSections(std::vector
 	}
 
 	return wholeWireVec;
+}
+
+// creating 2D filleted wire with base
+std::vector<TopoDS_Wire> GenerateVolute::Create2dFilletedWireWithBase(std::vector<TopoDS_Wire> filleted2dWireVec)
+{
+	TopoDS_Wire wireWithBase;
+	std::vector<TopoDS_Wire> withBaseWireVec;
+
+
+	for (int i = 0; i < filleted2dWireVec.size(); i++)
+	{
+		BRepLib_MakeWire wireMaker;
+
+		wireMaker.Add(filleted2dWireVec[i]);
+		BRepTools::Write(filleted2dWireVec[i], "filleted2dWire.brep");
+		wireMaker.Add(my_BaseWireList[i]);
+		BRepTools::Write(my_BaseWireList[i], "my_BaseWire.brep");
+
+		wireWithBase = wireMaker.Wire();
+		BRepTools::Write(wireWithBase, "wireWithBase.brep");
+
+		withBaseWireVec.push_back(wireWithBase);
+	}
+
+	return withBaseWireVec;
 }
 
 // Applying fillets to one hollow scroll shape
@@ -1580,47 +1610,6 @@ std::vector<TopoDS_Shape> GenerateVolute::mkFilletToExitPipe(std::vector<TopoDS_
 	return pipeVec;
 }
 
-std::vector<TopoDS_Wire> GenerateVolute::Create2dFilletedWireWithBase(std::vector<TopoDS_Wire> filleted2dWireVec)
-{
-	TopoDS_Wire wireWithBase;
-	std::vector<TopoDS_Wire> withBaseWireVec;
-
-
-	for (int i = 0; i < filleted2dWireVec.size(); i++)
-	{
-		BRepLib_MakeWire wireMaker;
-
-		wireMaker.Add(filleted2dWireVec[i]);
-		BRepTools::Write(filleted2dWireVec[i], "filleted2dWire.brep");
-		wireMaker.Add(my_BaseWireList[i]);
-		BRepTools::Write(my_BaseWireList[i], "my_BaseWire.brep");
-
-		wireWithBase = wireMaker.Wire();
-		BRepTools::Write(wireWithBase, "wireWithBase.brep");
-
-		withBaseWireVec.push_back(wireWithBase);
-	}
-
-	return withBaseWireVec;
-}
-
-// make spine 
-TopoDS_Wire GenerateVolute::MakeSpineCurve()
-{
-	gp_Pnt midPoint = GetMiddlePoint();
-	my_circleWire = CreateCircleToGetExitPipe(midPoint, 10000);
-	BRepTools::Write(my_circleWire, "my_circleWire.brep");
-
-	gp_Pnt pointTwo(midPoint.X() + 20, -70, midPoint.Z());
-	gp_Pnt pointThree(midPoint.X() + 100, -160, midPoint.Z());
-	GetVerticesToCreateCurve(midPoint, pointTwo, pointThree);
-
-	TopoDS_Wire curvedWire = CreateBsplineWithThreePoints(midPoint, pointTwo, pointThree);
-	BRepTools::Write(curvedWire, "curvedWire.brep");
-
-	return curvedWire;
-}
-
 // Applying fillets to one solid scroll shape
 TopoDS_Shape GenerateVolute::ApplyFilletSolidScroll(TopoDS_Shape scrollShape, double radius)
 {
@@ -1640,13 +1629,12 @@ TopoDS_Shape GenerateVolute::ApplyFilletSolidScroll(TopoDS_Shape scrollShape, do
 		{
 			mkFillet.Add(radius, anEdge);
 		}
-		
+
 	}
 	filletShape = mkFillet.Shape();
 
 	return filletShape;
 }
-
 
 // Applying fillets to solid scroll shape vector
 std::vector<TopoDS_Shape> GenerateVolute::mkFilletToSolidScroll(std::vector<TopoDS_Shape> solidScrollVec)
@@ -1664,13 +1652,26 @@ std::vector<TopoDS_Shape> GenerateVolute::mkFilletToSolidScroll(std::vector<Topo
 	return scrollVec;
 }
 
-// Create vertices to get the curve
+// make spine curve to create curved pipe
+TopoDS_Wire GenerateVolute::MakeSpineCurve()
+{
+	gp_Pnt midPoint = GetMiddlePoint();
+	my_circleWire = CreateCircleToGetExitPipe(midPoint, 10000);
+	BRepTools::Write(my_circleWire, "my_circleWire.brep");
+
+	gp_Pnt pointTwo(midPoint.X() + 20, -70, midPoint.Z());
+	gp_Pnt pointThree(midPoint.X() + 100, -160, midPoint.Z());
+	GetVerticesToCreateCurve(midPoint, pointTwo, pointThree);
+
+	TopoDS_Wire curvedWire = CreateBsplineWithThreePoints(midPoint, pointTwo, pointThree);
+	BRepTools::Write(curvedWire, "curvedWire.brep");
+
+	return curvedWire;
+}
+
+// Create vertices to get the spine curve
 void GenerateVolute::GetVerticesToCreateCurve(gp_Pnt pointOne, gp_Pnt pointTwo, gp_Pnt pointThree)
 {
-
-	/*gp_Pnt pointTwo(pointOne.X(), -110, 25);
-	gp_Pnt pointThree(pointOne.X(), -180, 10);*/
-
 	TopoDS_Vertex V1 = BRepBuilderAPI_MakeVertex(pointOne);
 	BRepTools::Write(V1, "pointOne.brep");
 
@@ -1706,7 +1707,6 @@ TopoDS_Wire GenerateVolute::CreateBsplineWithThreePoints(gp_Pnt p1, gp_Pnt p2, g
 
 gp_Vec GenerateVolute::CreateVector(TopoDS_Edge edge)
 {
-
 	double U1, U2;
 	gp_Pnt lastPnt, firstPnt;
 	Handle_Geom_Curve bsCurve = BRep_Tool::Curve(edge,U1,U2);
@@ -1724,6 +1724,7 @@ gp_Vec GenerateVolute::CreateVector(TopoDS_Edge edge)
 	return -vec2;
 }
 
+// create translated wire for the curved Pipe with the spine curve
 TopoDS_Wire GenerateVolute::CreateTrnslWire(TopoDS_Wire curvedWire, TopoDS_Wire wire1)
 {
 	BRepOffsetAPI_MakePipeShell exitPipeShell(curvedWire);
@@ -1743,6 +1744,7 @@ TopoDS_Wire GenerateVolute::CreateTrnslWire(TopoDS_Wire curvedWire, TopoDS_Wire 
 	return wire;
 }
 
+// Create pipe shell from translated wire
 TopoDS_Shape GenerateVolute::CreatePipeShellFromTrnsWire(TopoDS_Wire curvedWire, TopoDS_Wire wire1, TopoDS_Wire wire2)
 {
 	BRepOffsetAPI_MakePipeShell exitPipeShell(curvedWire);
@@ -1752,15 +1754,12 @@ TopoDS_Shape GenerateVolute::CreatePipeShellFromTrnsWire(TopoDS_Wire curvedWire,
 	exitPipeShell.Build();
 	
 	TopoDS_Shape curvedExitPipe = exitPipeShell.Shape();
-
-	//exitPipeShell.MakeSolid();
 	TopoDS_Shape pipe = exitPipeShell.Shape();
-	//my_solidCurvedPipe.push_back(pipe);
-	//BRepTools::Write(curvedExitPipe, "curvedExitPipe.brep");
 
 	return curvedExitPipe;
 }
 
+// Create pipe solid from translated wire
 TopoDS_Shape GenerateVolute::CreatePipeSoildFromTrnsWire(TopoDS_Wire curvedWire, TopoDS_Wire wire1, TopoDS_Wire wire2)
 {
 	BRepOffsetAPI_MakePipeShell exitPipeShell(curvedWire);
@@ -1801,10 +1800,11 @@ TopoDS_Shape GenerateVolute::SewVoluteWithCurvedPipe(std::vector<TopoDS_Shape> s
 	return sewedShape;
 }
 
-void CModelingDoc::OnCreateVol()
+// ButtonClick to start volute program
+void CModelingDoc::OnCreateVolute()
 {
 	GenerateVolute volute;
-	volute.CreateVolute();
+	volute.CreateVoluteWithoutFillets();
 	volute.TotalVolumeWithoutInOut();
 	volute.CreateRectangularExit();
 
@@ -1933,7 +1933,8 @@ void CModelingDoc::OnCreateVol()
 	
 }
 
-std::vector<TopoDS_Shape> GenerateVolute::CreateVolute()
+// Create volute without fillets
+std::vector<TopoDS_Shape> GenerateVolute::CreateVoluteWithoutFillets()
 {
 	// Initializing my_numOfSections
 	my_numOfSections = 60;
@@ -1963,7 +1964,7 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateVolute()
 	return my_shellVector;
 }
 
-
+// Create volute with 2D fillets without base
 std::vector<TopoDS_Shape> GenerateVolute::TotalVolumeWithoutInOut(/*std::vector<TopoDS_Shape> &thruSectPipe*/)
 {
 	//CreateVolute();
@@ -2008,30 +2009,9 @@ std::vector<TopoDS_Shape> GenerateVolute::TotalVolumeWithoutInOut(/*std::vector<
 
 }
 
-// Create circular exit plane
-TopoDS_Face GenerateVolute::CreateCircularExit()
-{
-	gp_Pnt midPoint = GetMiddlePoint();
-	TopoDS_Wire circleWire = CreateCircleToGetExitPipe(midPoint, 10000);
-
-	// Getting the translation of the square
-	gp_Vec myVec(0, -200, 0);
-	TopoDS_Wire circTrnsfWire = GetTranslationOfWire(circleWire, myVec);
-	BRepTools::Write(circTrnsfWire, "circTrnsfWire.brep");
-	BRepBuilderAPI_MakeFace circlePlane(circTrnsfWire, true);
-	BRepTools::Write(circlePlane, "circlePlane.brep");
-	my_exitPlanes.push_back(circlePlane);
-
-	TopoDS_Face circularExitPlane = circlePlane;
-
-	return circlePlane;
-}
-
+// Create volute with 2D fillets with base
 std::vector<TopoDS_Shape> GenerateVolute::CreateVoluteWith2dFillets()
 {
-
-	//CreateVolute();
-
 	std::vector<double> sectionArea = AreaCalculation(3000, 900);
 
 	std::vector<TopoDS_Wire> sectionsWithoutBase = CreateSectionWithoutBase(25, sectionArea);
@@ -2058,11 +2038,10 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateVoluteWith2dFillets()
 
 	solidVector2dFillet = CreateSolidList(rotated2dFilletWireWithBase, angleVector);
 	
-	//CreateStraightExitPipeWith2dFilletedWire();
-
 	return scrollVectorWithoutBoolCut;
 }
 
+// Create straight exit pipe with 2D filleted wire
 TopoDS_Shape GenerateVolute::CreateStraightExitPipeWith2dFilletedWire()
 {
 	//getVerticesFromEdges();
@@ -2104,6 +2083,7 @@ TopoDS_Shape GenerateVolute::CreateStraightExitPipeWith2dFilletedWire()
 	return boolCut2dFilletPipe;
 }
 
+// Create straight exit pipe with circular exit plane
 TopoDS_Shape GenerateVolute::CreateStraightExitPipeWithCircularExit()
 {
 	//getVerticesFromEdges();
@@ -2144,6 +2124,7 @@ TopoDS_Shape GenerateVolute::CreateStraightExitPipeWithCircularExit()
 	return boolCutStraightPipeWithCirExit;
 }
 
+// Create straight pipe without fillets
 TopoDS_Shape GenerateVolute::CreateStraightPipe()
 {
 	// Getting the middle point of the square
@@ -2184,6 +2165,7 @@ TopoDS_Shape GenerateVolute::CreateStraightPipe()
 	return my_exitPipeBooleanCut;
 }
 
+// Create 3D filleted straight exit pipe
 TopoDS_Shape GenerateVolute::CreateFilletedStraightPipe()
 {
 	// Thrusecting the filleted exit pipe
@@ -2203,6 +2185,7 @@ TopoDS_Shape GenerateVolute::CreateFilletedStraightPipe()
 
 }
 
+// Create rectangular exit plane
 TopoDS_Face GenerateVolute::CreateRectangularExit()
 {
 	// Getting the middle point of the square
@@ -2235,10 +2218,9 @@ TopoDS_Face GenerateVolute::CreateRectangularExit()
 	return squarePlane;
 }
 
+// Create 2D filleted rectangular exit
 TopoDS_Face GenerateVolute::CreateFilletedRectangularExit()
 {
-	//getVerticesFromEdges();
-
 	std::vector<TopoDS_Edge> edgesWith2dFillets = create2dFilletsForSquare(6);
 	TopoDS_Wire rectWire2dFillets = Create2dWire(edgesWith2dFillets);
 	BRepTools::Write(rectWire2dFillets, "wire2dFillets.brep");
@@ -2254,7 +2236,26 @@ TopoDS_Face GenerateVolute::CreateFilletedRectangularExit()
 	return filletedsquarePlane;
 }
 
-// Create the curved pipe
+// Create circular exit plane
+TopoDS_Face GenerateVolute::CreateCircularExit()
+{
+	gp_Pnt midPoint = GetMiddlePoint();
+	TopoDS_Wire circleWire = CreateCircleToGetExitPipe(midPoint, 10000);
+
+	// Getting the translation of the square
+	gp_Vec myVec(0, -200, 0);
+	TopoDS_Wire circTrnsfWire = GetTranslationOfWire(circleWire, myVec);
+	BRepTools::Write(circTrnsfWire, "circTrnsfWire.brep");
+	BRepBuilderAPI_MakeFace circlePlane(circTrnsfWire, true);
+	BRepTools::Write(circlePlane, "circlePlane.brep");
+	my_exitPlanes.push_back(circlePlane);
+
+	TopoDS_Face circularExitPlane = circlePlane;
+
+	return circlePlane;
+}
+
+// Create the curved exit pipe
 TopoDS_Shape GenerateVolute::CreateCurvedPipeWithCircularExit()
 {
 	TopoDS_Wire curvedWire = MakeSpineCurve();
@@ -2295,6 +2296,7 @@ TopoDS_Shape GenerateVolute::CreateCurvedPipeWithCircularExit()
 	return boolCutForCurvedPipe;
 }
 
+// Create curved pipe with rectangular exit 
 TopoDS_Shape GenerateVolute::CreateCurvedPipeWithRectExit()
 {
 	TopoDS_Wire curvedWire = MakeSpineCurve();
