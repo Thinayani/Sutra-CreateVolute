@@ -228,6 +228,32 @@ std::vector<TopoDS_Wire> GenerateVolute::CreateSection(double width, std::vector
 	return my_WithBaseWireList;
 }
 
+void GenerateVolute::CreateNewCrossSection(double L1, double L2, double L3, double L4, double L5)
+{
+	gp_Pnt P1(150, 0, 0);
+	gp_Pnt P2(150 - L2, 0, 0);
+	gp_Pnt P3(150 - L2, 0, 0 - L1);
+	gp_Pnt P4(150, 0, L3);
+	gp_Pnt P5(150 - L4, 0, L3);
+	gp_Pnt P6(150 - L4, 0, L3 + L5);
+
+	double height = 100;
+
+	gp_Pnt P7(150 + height, 0, 0 - L1);
+	gp_Pnt P8(150 + height, 0, L3 + L5);
+
+	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(P1, P2);
+	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(P2, P3);
+	TopoDS_Edge Edge3 = BRepBuilderAPI_MakeEdge(P3, P7);
+	TopoDS_Edge Edge4 = BRepBuilderAPI_MakeEdge(P7, P8); 
+	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(P8, P6);
+	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(P6, P5);
+	TopoDS_Edge Edge3 = BRepBuilderAPI_MakeEdge(P5, P4);
+	TopoDS_Edge Edge4 = BRepBuilderAPI_MakeEdge(P4, P1);
+
+
+}
+
 // Creating cross-sections with the linear decrement of areas without input faces
 std::vector<TopoDS_Wire> GenerateVolute::CreateSectionWithoutBase(double width, std::vector<double> area)
 {

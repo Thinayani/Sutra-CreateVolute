@@ -230,6 +230,7 @@ public:
 	//std::vector<TopoDS_Shape> CreateVoluteWith2dFilletsWithBase();
 	TopoDS_Shape CreateStraightExitPipeWith2dFilletedWire();
 	std::vector<TopoDS_Wire> Create2dFilletedWireWithBase(std::vector<TopoDS_Wire> filleted2dWireVec);
+	void CreateNewCrossSection(double a, double b, double x, double y, double k);
 
 	int my_numOfSections;
 
