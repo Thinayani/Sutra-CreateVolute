@@ -228,8 +228,15 @@ std::vector<TopoDS_Wire> GenerateVolute::CreateSection(double width, std::vector
 	return my_WithBaseWireList;
 }
 
-void GenerateVolute::CreateNewCrossSection(double L1, double L2, double L3, double L4, double L5)
+std::vector<TopoDS_Wire> GenerateVolute::CreateNewCrossSection(double L1, double L2, double L3, double L4, double L5, std::vector<double> area)
 {
+
+	TopoDS_Wire NewCrossSectionWire;
+	std::vector<TopoDS_Wire> TotalWires_vec;
+	std::vector<TopoDS_Wire> NewCrossSectionWireList;
+
+	std::vector<TopoDS_Edge> edge_vec;
+
 	gp_Pnt P1(150, 0, 0);
 	gp_Pnt P2(150 - L2, 0, 0);
 	gp_Pnt P3(150 - L2, 0, 0 - L1);
@@ -237,20 +244,59 @@ void GenerateVolute::CreateNewCrossSection(double L1, double L2, double L3, doub
 	gp_Pnt P5(150 - L4, 0, L3);
 	gp_Pnt P6(150 - L4, 0, L3 + L5);
 
-	double height = 100;
+	double width = L1 + L3 + L5;
 
-	gp_Pnt P7(150 + height, 0, 0 - L1);
-	gp_Pnt P8(150 + height, 0, L3 + L5);
+	for (int i = 0; i < area.size(); i++)
+	{
+		double height = area[i] / width;
 
-	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(P1, P2);
-	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(P2, P3);
-	TopoDS_Edge Edge3 = BRepBuilderAPI_MakeEdge(P3, P7);
-	TopoDS_Edge Edge4 = BRepBuilderAPI_MakeEdge(P7, P8); 
-	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(P8, P6);
-	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(P6, P5);
-	TopoDS_Edge Edge3 = BRepBuilderAPI_MakeEdge(P5, P4);
-	TopoDS_Edge Edge4 = BRepBuilderAPI_MakeEdge(P4, P1);
+		gp_Pnt P7(150 + height, 0, 0 - L1);
+		gp_Pnt P8(150 + height, 0, L3 + L5);
 
+		TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(P1, P2);
+		BRepTools::Write(Edge1, "Edge1.brep");
+		TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(P2, P3);
+		BRepTools::Write(Edge2, "Edge2.brep");
+		TopoDS_Edge Edge3 = BRepBuilderAPI_MakeEdge(P3, P7);
+		BRepTools::Write(Edge3, "Edge3.brep");
+		TopoDS_Edge Edge4 = BRepBuilderAPI_MakeEdge(P7, P8);
+		BRepTools::Write(Edge4, "Edge4.brep");
+		TopoDS_Edge Edge5 = BRepBuilderAPI_MakeEdge(P8, P6);
+		BRepTools::Write(Edge5, "Edge5.brep");
+		TopoDS_Edge Edge6 = BRepBuilderAPI_MakeEdge(P6, P5);
+		BRepTools::Write(Edge6, "Edge6.brep");
+		TopoDS_Edge Edge7 = BRepBuilderAPI_MakeEdge(P5, P4);
+		BRepTools::Write(Edge7, "Edge7.brep");
+		TopoDS_Edge Edge8 = BRepBuilderAPI_MakeEdge(P4, P1);
+		BRepTools::Write(Edge8, "Edge8.brep");
+
+		edge_vec.clear();
+		edge_vec.push_back(Edge1);
+		edge_vec.push_back(Edge2);
+		edge_vec.push_back(Edge3);
+		edge_vec.push_back(Edge4);
+		edge_vec.push_back(Edge5);
+		edge_vec.push_back(Edge6);
+		edge_vec.push_back(Edge7);
+		edge_vec.push_back(Edge8);
+
+		for (int i = 0; i < edge_vec.size(); i++)
+		{
+			TopoDS_Wire Wire = BRepBuilderAPI_MakeWire(edge_vec[i]);
+			TotalWires_vec.push_back(Wire);
+		}
+	}
+
+	BRepLib_MakeWire wireMaker;
+	for (int i = 0; i < TotalWires_vec.size(); i++)
+	{
+		wireMaker.Add(TotalWires_vec[i]);
+		NewCrossSectionWireList.push_back(TotalWires_vec[i]);
+	}
+	NewCrossSectionWire = wireMaker.Wire();
+	BRepTools::Write(NewCrossSectionWire, "NewCrossSectionWire.brep");
+
+	return NewCrossSectionWireList;
 
 }
 
@@ -1830,6 +1876,7 @@ TopoDS_Shape GenerateVolute::SewVoluteWithCurvedPipe(std::vector<TopoDS_Shape> s
 void CModelingDoc::OnCreateVolute()
 {
 	GenerateVolute volute;
+	
 	volute.CreateVoluteWithoutFillets();
 	volute.TotalVolumeWithoutInOut();
 	volute.CreateRectangularExit();
@@ -1957,6 +2004,21 @@ void CModelingDoc::OnCreateVolute()
 	TopoDS_Shape ReversedSolidVolute = volute.ReverseShapeIfInsideOut(SolidVolute);
 	BRepTools::Write(ReversedSolidVolute, "ReversedSolidVolute.brep");
 	
+}
+
+std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
+{
+	std::vector<double> areasOfSections = AreaCalculation(6000, 900);
+
+	std::vector<TopoDS_Wire> crossSectionVec = CreateNewCrossSection(50, 100, 75, 50, 50, areasOfSections);
+
+	std::vector<double> angleVector = CreateAngleVector();
+
+	// Calling the CreateSection function
+	std::vector<TopoDS_Wire> rotatedCrossSectionWires = RotateCrossSections(crossSectionVec, angleVector);
+
+	TopoDS_Shape compoundShapeWithBaseWire = CreateCompoundShape(rotatedCrossSectionWires);
+	BRepTools::Write(compoundShapeWithBaseWire, "compoundShape.brep");
 }
 
 // Create volute without fillets
