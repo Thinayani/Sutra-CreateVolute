@@ -236,6 +236,7 @@ public:
 	void getVerticesFromEdges_New(TopoDS_Wire wire);
 	TopoDS_Wire Apply2dFilletsForNewCrossSection(/*std::vector<TopoDS_Edge> newEdgeVec, */TopoDS_Wire wire, double radius);
 	std::vector<TopoDS_Wire> createFilletedCrossSections_newShape(std::vector<TopoDS_Wire> wireVec);
+	TopoDS_Shape ApplyFilletNewScrollShapes(TopoDS_Shape scrollShape, double radius);
 
 	std::vector<TopoDS_Edge> my_newCrossSectionEdgeVec;
 	std::vector<gp_Pnt> newShape_pointVec1;
