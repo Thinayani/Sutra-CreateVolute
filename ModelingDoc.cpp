@@ -1787,7 +1787,7 @@ std::vector<TopoDS_Shape> GenerateVolute::mkFilletToScrollShapes(std::vector<Top
 	std::vector<TopoDS_Shape> scrollShapes;
 	for (int i = 0; i < scrollShapeVec.size(); i++)
 	{
-		filletedShape = ApplyFilletNewScrollShapes(scrollShapeVec[i], 6);
+		filletedShape = ApplyFilletScrollShapes(scrollShapeVec[i], 6);
 		BRepTools::Write(filletedShape, "filletedScrollShape.brep");
 		scrollShapes.push_back(filletedShape);
 	}
@@ -1810,7 +1810,7 @@ TopoDS_Shape GenerateVolute::ApplyFilletNewScrollShapes(TopoDS_Shape scrollShape
 
 		counter1++;
 
-		if (counter1 == 1)
+		if (counter1 == 10 || counter1 == 14)
 		{
 			TopoDS_Edge edge = TopoDS::Edge(ex.Current());
 			BRepTools::Write(edge, "topEdge.brep");
@@ -1821,6 +1821,23 @@ TopoDS_Shape GenerateVolute::ApplyFilletNewScrollShapes(TopoDS_Shape scrollShape
 
 	return filletShape;
 }
+
+// Applying fillets to hollow scroll shape vector
+std::vector<TopoDS_Shape> GenerateVolute::mkFilletToNewScrollShapes(std::vector<TopoDS_Shape> scrollShapeVec)
+{
+	TopoDS_Shape filletedShape;
+	std::vector<TopoDS_Shape> scrollShapes;
+
+	for (int i = 0; i < scrollShapeVec.size(); i++)
+	{
+		filletedShape = ApplyFilletNewScrollShapes(scrollShapeVec[i], 6);
+		BRepTools::Write(filletedShape, "filletedScrollShape.brep");
+		scrollShapes.push_back(filletedShape);
+	}
+
+	return scrollShapes;
+}
+
 
 // Applying fillets to one solid pipe shape
 TopoDS_Shape GenerateVolute::ApplyFilletSolidPipe(TopoDS_Shape solidPipe, double radius)
@@ -2555,7 +2572,7 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 
 	std::vector<TopoDS_Shape> solidVectorOfScrollShape = CreateSolidList(rotatedCrossSectionWires, angleVector);
 
-	std::vector<TopoDS_Shape> filletedScrollShapes = mkFilletToScrollShapes(shellVector);
+	std::vector<TopoDS_Shape> filletedScrollShapes = mkFilletToNewScrollShapes(shellVector);
 
 	/////// Create new volute with 2D fillets
 	std::vector<TopoDS_Wire> newCrossSectionWith2DFillets = createFilletedCrossSections_newShape(newCrossSectionVecWithoutFillets);
@@ -2570,7 +2587,7 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 	std::vector<TopoDS_Shape> filletedSolidVector = CreateSolidList(rotatedFilletedCrossSectionWires, angleVector);
 
 	
-	
+	// create filleted rectangle
 	std::vector<TopoDS_Edge> edgesWith2dFillets = create2dFilletsForSquare(6);
 	TopoDS_Wire rectWire2dFillets = Create2dWire(edgesWith2dFillets);
 	BRepTools::Write(my_rectWire2dFillets, "wire2dFillets.brep");
