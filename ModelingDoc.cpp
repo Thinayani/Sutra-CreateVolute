@@ -297,8 +297,6 @@ std::vector<TopoDS_Wire> GenerateVolute::CreateNewCrossSection(double L1, double
 	return NewCrossSectionWireList;
 }
 
-
-
 // Creating cross-sections with the linear decrement of areas without input faces
 std::vector<TopoDS_Wire> GenerateVolute::CreateSectionWithoutBase(double width, std::vector<double> area)
 {
@@ -775,54 +773,63 @@ TopoDS_Wire GenerateVolute::Create2dWire(std::vector<TopoDS_Edge> edgeVec)
 }
 
 // get vertices for new cross section
-void GenerateVolute::getVerticesFromEdges_New(std::vector<TopoDS_Edge> edgeVec)
+void GenerateVolute::getVerticesFromEdges_New(TopoDS_Wire wire)
 {
 	std::vector<TopoDS_Vertex> vertexVec1;
 	std::vector<TopoDS_Vertex> vertexVec2;
 	std::vector<TopoDS_Vertex> vertexVec3;
 	std::vector<TopoDS_Vertex> vertexVec4;
 	std::vector<TopoDS_Vertex> vertexVec5;
-
+	std::vector<TopoDS_Edge> edgeVec;
 	TopoDS_Vertex vertex;
+
+
+	for (TopExp_Explorer explr(wire, TopAbs_EDGE); explr.More(); explr.Next())
+	{
+		TopoDS_Edge edgeFromWire = TopoDS::Edge(explr.Current());
+		edgeVec.push_back(edgeFromWire);
+		BRepTools::Write(edgeFromWire, "edgeFromWire.brep");
+
+	}
 
 	for (int i = 0; i < edgeVec.size(); i++)
 	{
 		for (TopExp_Explorer explr(edgeVec[i], TopAbs_VERTEX); explr.More(); explr.Next())
 		{
-			BRepTools::Write(edgeVec[0], "newEdge1.brep");
-			BRepTools::Write(edgeVec[1], "newEdge2.brep");
-			BRepTools::Write(edgeVec[2], "newEdge3.brep");
-			BRepTools::Write(edgeVec[3], "newEdge4.brep");
-			BRepTools::Write(edgeVec[7], "newEdge7.brep");
+			BRepTools::Write(edgeVec[1], "newEdge1.brep");
+			BRepTools::Write(edgeVec[2], "newEdge2.brep");
+			BRepTools::Write(edgeVec[3], "newEdge3.brep");
+			BRepTools::Write(edgeVec[4], "newEdge4.brep");
+			BRepTools::Write(edgeVec[5], "newEdge7.brep");
 
 			vertex = TopoDS::Vertex(explr.Current());
 			gp_Pnt point = BRep_Tool::Pnt(vertex);
 
-			if (i == 0)
+			if (i == 1)
 			{
 				vertexVec1.push_back(vertex);
 				BRepTools::Write(vertex, "vertex1.brep");
 				newShape_pointVec1.push_back(point);
 			}
-			if (i == 1)
+			if (i == 2)
 			{
 				vertexVec2.push_back(vertex);
 				BRepTools::Write(vertex, "vertex2.brep");
 				newShape_pointVec2.push_back(point);
 			}
-			if (i == 2)
+			if (i == 3)
 			{
 				vertexVec3.push_back(vertex);
 				BRepTools::Write(vertex, "vertex3.brep");
 				newShape_pointVec3.push_back(point);
 			}
-			if (i == 3)
+			if (i == 4)
 			{
 				vertexVec4.push_back(vertex);
 				BRepTools::Write(vertex, "vertex4.brep");
 				newShape_pointVec4.push_back(point);
 			}
-			if (i == 7)
+			if (i == 5)
 			{
 				vertexVec5.push_back(vertex);
 				BRepTools::Write(vertex, "vertex7.brep");
@@ -838,7 +845,7 @@ TopoDS_Wire GenerateVolute::Apply2dFilletsForNewCrossSection(/*std::vector<TopoD
 	gp_Pnt commonPoint1 = getCommonPoint(newShape_pointVec1, newShape_pointVec2);
 	gp_Pnt commonPoint2 = getCommonPoint(newShape_pointVec2, newShape_pointVec3);
 	gp_Pnt commonPoint3 = getCommonPoint(newShape_pointVec3, newShape_pointVec4);
-	gp_Pnt commonPoint4 = getCommonPoint(newShape_pointVec5, newShape_pointVec1);
+	gp_Pnt commonPoint4 = getCommonPoint(newShape_pointVec4, newShape_pointVec5);
 
 	std::vector<TopoDS_Edge> newEdgeVec;
 
@@ -847,94 +854,96 @@ TopoDS_Wire GenerateVolute::Apply2dFilletsForNewCrossSection(/*std::vector<TopoD
 		TopoDS_Edge edgeFromWire = TopoDS::Edge(explr.Current());
 		newEdgeVec.push_back(edgeFromWire);
 	}
-	TopoDS_Edge tempEdge0 = newEdgeVec[0];
+
 	TopoDS_Edge tempEdge1 = newEdgeVec[1];
+	TopoDS_Edge tempEdge2 = newEdgeVec[2];
 
 	gp_Ax2 axis1 = gp_Ax2(commonPoint1, gp_Dir(gp_Vec(0, 1, 0)));
 	gp_Pln plane1(axis1);
-	ChFi2d_FilletAPI mkFillet1(newEdgeVec[0], newEdgeVec[1], plane1);
-	mkFillet1.Init(newEdgeVec[0], newEdgeVec[1], plane1);
+	ChFi2d_FilletAPI mkFillet1(newEdgeVec[1], newEdgeVec[2], plane1);
+	mkFillet1.Init(newEdgeVec[1], newEdgeVec[2], plane1);
 	mkFillet1.Perform(radius);
-	TopoDS_Edge curvedEdge1 = mkFillet1.Result(commonPoint1, newEdgeVec[0], newEdgeVec[1], -1);
+	TopoDS_Edge curvedEdge1 = mkFillet1.Result(commonPoint1, newEdgeVec[1], newEdgeVec[2], -1);
 	BRepTools::Write(curvedEdge1, "CurvedEdge1.brep");
-	BRepTools::Write(newEdgeVec[0], "newEdgeVec[0].brep");
 	BRepTools::Write(newEdgeVec[1], "newEdgeVec[1].brep");
+	BRepTools::Write(newEdgeVec[2], "newEdgeVec[2].brep");
 
 	//// fillet 1
-	ChFi2d_FilletAPI mkFillet2_tempEdge1(tempEdge1, tempEdge0, plane1);
+	ChFi2d_FilletAPI mkFillet2_tempEdge1(tempEdge2, tempEdge1, plane1);
 	mkFillet2_tempEdge1.Perform(radius);
-	mkFillet2_tempEdge1.Result(commonPoint1, tempEdge1, tempEdge0, -1);
-	BRepTools::Write(tempEdge0, "tempEdge0.brep");
-	BRepTools::Write(tempEdge1, "tempEdge1.brep");
-	BRepTools::Write(newEdgeVec[1], "newEdgeVec[1].brep");
+	mkFillet2_tempEdge1.Result(commonPoint1, tempEdge2, tempEdge1, -1);
+	BRepTools::Write(tempEdge1, "tempEdge0.brep");
+	BRepTools::Write(tempEdge2, "tempEdge1.brep");
+	BRepTools::Write(newEdgeVec[2], "newEdgeVec[2].brep");
 
-	newEdgeVec[1] = tempEdge1;
-	TopoDS_Edge tempEdge2 = newEdgeVec[2];
+	newEdgeVec[2] = tempEdge2;
+	TopoDS_Edge tempEdge3 = newEdgeVec[3];
 
 	///////fillet 2
 	gp_Ax2 axis2 = gp_Ax2(commonPoint2, gp_Dir(gp_Vec(0, 1, 0)));
 	gp_Pln plane2(axis2);
-	ChFi2d_FilletAPI mkFillet2(newEdgeVec[1], newEdgeVec[2], plane2);
-	mkFillet2.Init(newEdgeVec[1], newEdgeVec[2], plane2);
+	ChFi2d_FilletAPI mkFillet2(newEdgeVec[2], newEdgeVec[3], plane2);
+	mkFillet2.Init(newEdgeVec[2], newEdgeVec[3], plane2);
 	mkFillet2.Perform(radius);
-	TopoDS_Edge curvedEdge2 = mkFillet2.Result(commonPoint2, newEdgeVec[1], newEdgeVec[2], -1);
+	TopoDS_Edge curvedEdge2 = mkFillet2.Result(commonPoint2, newEdgeVec[2], newEdgeVec[3], -1);
 	BRepTools::Write(curvedEdge2, "CurvedEdge2.brep");
-	BRepTools::Write(newEdgeVec[1], "newEdgeVec[1].brep");
 	BRepTools::Write(newEdgeVec[2], "newEdgeVec[2].brep");
+	BRepTools::Write(newEdgeVec[3], "newEdgeVec[3].brep");
 
 	//fillet 3
-	TopoDS_Edge tempEdge3 = newEdgeVec[3];
-	tempEdge2 = newEdgeVec[2];
-	BRepTools::Write(tempEdge2, "tempEdge2.brep");
+	TopoDS_Edge tempEdge4 = newEdgeVec[4];
+	tempEdge3 = newEdgeVec[3];
+	BRepTools::Write(tempEdge3, "tempEdge2.brep");
 
 	gp_Ax2 axis3 = gp_Ax2(commonPoint3, gp_Dir(gp_Vec(0, 1, 0)));
 	gp_Pln plane3(axis3);
-	ChFi2d_FilletAPI mkFillet3(newEdgeVec[2], newEdgeVec[3], plane3);
-	mkFillet3.Init(newEdgeVec[2], newEdgeVec[3], plane3);
+	ChFi2d_FilletAPI mkFillet3(newEdgeVec[3], newEdgeVec[4], plane3);
+	mkFillet3.Init(newEdgeVec[3], newEdgeVec[4], plane3);
 	mkFillet3.Perform(radius);
-	TopoDS_Edge curvedEdge3 = mkFillet3.Result(commonPoint3, newEdgeVec[2], newEdgeVec[3], -1);
+	TopoDS_Edge curvedEdge3 = mkFillet3.Result(commonPoint3, newEdgeVec[3], newEdgeVec[4], -1);
 	BRepTools::Write(curvedEdge3, "CurvedEdge3.brep");
+	BRepTools::Write(newEdgeVec[4], "newEdgeVec[4].brep");
 	BRepTools::Write(newEdgeVec[3], "newEdgeVec[3].brep");
-	BRepTools::Write(newEdgeVec[2], "newEdgeVec[2].brep");
 
-	ChFi2d_FilletAPI mkFillet2_tempEdge3(tempEdge3, tempEdge2, plane3);
+	ChFi2d_FilletAPI mkFillet2_tempEdge3(tempEdge4, tempEdge3, plane3);
 	mkFillet2_tempEdge3.Perform(radius);
-	mkFillet2_tempEdge3.Result(commonPoint3, tempEdge3, tempEdge2, -1);
-	BRepTools::Write(tempEdge2, "tempEdge2.brep");
+	mkFillet2_tempEdge3.Result(commonPoint3, tempEdge4, tempEdge3, -1);
 	BRepTools::Write(tempEdge3, "tempEdge3.brep");
+	BRepTools::Write(tempEdge4, "tempEdge4.brep");
 
-	newEdgeVec[7] = tempEdge3;
+	newEdgeVec[4] = tempEdge4;
 
 	// fillet 4
 	gp_Ax2 axis4 = gp_Ax2(commonPoint4, gp_Dir(gp_Vec(0, 1, 0)));
 	gp_Pln plane4(axis4);
-	ChFi2d_FilletAPI mkFillet4(newEdgeVec[7], newEdgeVec[0], plane4);
-	mkFillet4.Init(newEdgeVec[7], newEdgeVec[0], plane4);
+	ChFi2d_FilletAPI mkFillet4(newEdgeVec[5], newEdgeVec[4], plane4);
+	mkFillet4.Init(newEdgeVec[5], newEdgeVec[4], plane4);
 	mkFillet4.Perform(radius);
-	TopoDS_Edge curvedEdge4 = mkFillet4.Result(commonPoint4, newEdgeVec[7], newEdgeVec[0], -1);
-	BRepTools::Write(newEdgeVec[0], "newEdgeVec[0].brep");
-	BRepTools::Write(newEdgeVec[7], "newEdgeVec[3].brep");
+	TopoDS_Edge curvedEdge4 = mkFillet4.Result(commonPoint4, newEdgeVec[5], newEdgeVec[4], -1);
+	BRepTools::Write(newEdgeVec[4], "newEdgeVec[4].brep");
+	BRepTools::Write(newEdgeVec[5], "newEdgeVec[5].brep");
 	BRepTools::Write(curvedEdge4, "CurvedEdge4.brep");
 
-	BRepTools::Write(newEdgeVec[0], "edgeOfnewShape1.brep");
-	BRepTools::Write(newEdgeVec[1], "edgeOfnewShape2.brep");
-	BRepTools::Write(newEdgeVec[2], "edgeOfnewShape3.brep");
-	BRepTools::Write(newEdgeVec[3], "edgeOfnewShape4.brep");
-	BRepTools::Write(newEdgeVec[7], "edgeOfnewShape5.brep");
+	BRepTools::Write(newEdgeVec[1], "edgeOfnewShape1.brep");
+	BRepTools::Write(newEdgeVec[2], "edgeOfnewShape2.brep");
+	BRepTools::Write(newEdgeVec[3], "edgeOfnewShape3.brep");
+	BRepTools::Write(newEdgeVec[4], "edgeOfnewShape4.brep");
+	BRepTools::Write(newEdgeVec[5], "edgeOfnewShape5.brep");
 
 	BRepBuilderAPI_MakeWire makeWholeWire;
-	makeWholeWire.Add(newEdgeVec[0]);
-	makeWholeWire.Add(curvedEdge1);
 	makeWholeWire.Add(newEdgeVec[1]);
-	makeWholeWire.Add(curvedEdge2);
+	makeWholeWire.Add(curvedEdge1);
 	makeWholeWire.Add(newEdgeVec[2]);
-	makeWholeWire.Add(curvedEdge3);
+	makeWholeWire.Add(curvedEdge2);
 	makeWholeWire.Add(newEdgeVec[3]);
+	makeWholeWire.Add(curvedEdge3);
 	makeWholeWire.Add(newEdgeVec[4]);
+	makeWholeWire.Add(curvedEdge4);
 	makeWholeWire.Add(newEdgeVec[5]);
 	makeWholeWire.Add(newEdgeVec[6]);
 	makeWholeWire.Add(newEdgeVec[7]);
-	makeWholeWire.Add(curvedEdge4);
+	makeWholeWire.Add(newEdgeVec[0]);
+	
 	makeWholeWire.Build();
 
 	TopoDS_Wire wholeWire = makeWholeWire.Wire();
@@ -945,13 +954,14 @@ TopoDS_Wire GenerateVolute::Apply2dFilletsForNewCrossSection(/*std::vector<TopoD
 }
 
 // create wire vector applying 2D fillets for the new cross sections
-std::vector<TopoDS_Wire> GenerateVolute::createFilletedCrossSections(std::vector<TopoDS_Wire> wireVec)
+std::vector<TopoDS_Wire> GenerateVolute::createFilletedCrossSections_newShape(std::vector<TopoDS_Wire> wireVec)
 {
 	TopoDS_Wire filleted2dwire;
 	std::vector<TopoDS_Wire> wholeWireVec;
 	
 	for (int i = 0; i < wireVec.size(); i++)
 	{
+		getVerticesFromEdges_New(wireVec[i]);
 		filleted2dwire = Apply2dFilletsForNewCrossSection(wireVec[i], 6);
 		BRepTools::Write(filleted2dwire, "filleted2dwire.brep");
 		wholeWireVec.push_back(filleted2dwire);
@@ -2063,10 +2073,11 @@ void CModelingDoc::OnCreateVolute()
 {
 	GenerateVolute volute;
 	
-	volute.CreateNewCrossSection();
 	volute.CreateVoluteWithoutFillets();
 	volute.TotalVolumeWithoutInOut();
 	volute.CreateRectangularExit();
+
+	volute.CreateNewCrossSection();
 
 	bool /*isFilleted,*/ isCircularExit, isCurvedExitPipe;
 
@@ -2193,35 +2204,11 @@ void CModelingDoc::OnCreateVolute()
 	
 }
 
-std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
-{
-	my_numOfSections = 60;
-
-	std::vector<double> areasOfSections = AreaCalculation(26250, 900);
-
-	std::vector<TopoDS_Wire> newCrossSectionVec = CreateNewCrossSection(50, 100, 75, 50, 50, areasOfSections);
-
-	Apply2dFilletsForNewCrossSection(my_newCrossSectionEdgeVec, 6);
-	std::vector<double> angleVector = CreateAngleVector();
-
-	// Calling the CreateSection function
-	std::vector<TopoDS_Wire> rotatedCrossSectionWires = RotateCrossSections(newCrossSectionVec, angleVector);
-
-	TopoDS_Shape compoundShapeWithBaseWire = CreateCompoundShape(rotatedCrossSectionWires);
-	BRepTools::Write(compoundShapeWithBaseWire, "compoundShape.brep");
-
-	std::vector<TopoDS_Shape> shellVector = CreateShellList(rotatedCrossSectionWires, angleVector);
-
-	std::vector<TopoDS_Shape> solidVectorOfScrollShape = CreateSolidList(rotatedCrossSectionWires, angleVector);
-
-	return shellVector;
-}
-
 // Create volute without fillets
 std::vector<TopoDS_Shape> GenerateVolute::CreateVoluteWithoutFillets()
 {
 	// Initializing my_numOfSections
-	//my_numOfSections = 60;
+	my_numOfSections = 60;
 
 	// Calling the AreaCalculation function
 	std::vector<double> areasOfSections = AreaCalculation(3000, 900);
@@ -2519,6 +2506,58 @@ TopoDS_Face GenerateVolute::CreateFilletedRectangularExit()
 
 	return filletedsquarePlane;
 }
+
+// Create new cross section volute
+std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
+{
+	//my_numOfSections = 60;
+
+	std::vector<double> areasOfSections = AreaCalculation(26250, 900);
+	
+	std::vector<double> angleVector = CreateAngleVector();
+
+	/////// Create new volute without fillets
+	std::vector<TopoDS_Wire> newCrossSectionVecWithoutFillets = CreateNewCrossSection(50, 100, 75, 50, 50, areasOfSections);
+
+	std::vector<TopoDS_Wire> rotatedCrossSectionWires = RotateCrossSections(newCrossSectionVecWithoutFillets, angleVector);
+
+	TopoDS_Shape compoundShapeWithBaseWire = CreateCompoundShape(rotatedCrossSectionWires);
+	BRepTools::Write(compoundShapeWithBaseWire, "compoundShape.brep");
+
+	std::vector<TopoDS_Shape> shellVector = CreateShellList(rotatedCrossSectionWires, angleVector);
+
+	std::vector<TopoDS_Shape> solidVectorOfScrollShape = CreateSolidList(rotatedCrossSectionWires, angleVector);
+
+	/////// Create new volute with 2D fillets
+	std::vector<TopoDS_Wire> newCrossSectionWith2DFillets = createFilletedCrossSections_newShape(newCrossSectionVecWithoutFillets);
+
+	std::vector<TopoDS_Wire> rotatedFilletedCrossSectionWires = RotateCrossSections(newCrossSectionWith2DFillets, angleVector);
+
+	TopoDS_Shape filletedCompoundShapeWithBaseWire = CreateCompoundShape(rotatedFilletedCrossSectionWires);
+	BRepTools::Write(filletedCompoundShapeWithBaseWire, "filletedCompoundShapeWithBaseWire.brep");
+
+	std::vector<TopoDS_Shape> filletedShellVector = CreateShellList(rotatedFilletedCrossSectionWires, angleVector);
+
+	std::vector<TopoDS_Shape> filletedSolidVector = CreateSolidList(rotatedFilletedCrossSectionWires, angleVector);
+
+	
+	
+	std::vector<TopoDS_Edge> edgesWith2dFillets = create2dFilletsForSquare(6);
+	TopoDS_Wire rectWire2dFillets = Create2dWire(edgesWith2dFillets);
+	BRepTools::Write(my_rectWire2dFillets, "wire2dFillets.brep");
+
+	// Getting the translation of the square
+	gp_Vec myVec(0, -200, 0);
+	TopoDS_Wire trnsfWire = GetTranslationOfWire(rectWire2dFillets, myVec);
+	BRepTools::Write(trnsfWire, "trnsf2dWire.brep");
+
+	// ThruSecting the exit pipe
+	TopoDS_Shape ThruSectPipe_NewShape = ThruSectExitPipe(rotatedCrossSectionWires[0], trnsfWire, Standard_False);
+	BRepTools::Write(ThruSectPipe_NewShape, "ThruSectPipe_NewShape.brep");
+
+	return shellVector;
+}
+
 
 // Create circular exit plane
 TopoDS_Face GenerateVolute::CreateCircularExit()

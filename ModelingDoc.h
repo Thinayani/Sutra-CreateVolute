@@ -233,8 +233,9 @@ public:
 	std::vector<TopoDS_Wire> CreateNewCrossSection(double L1, double L2, double L3, double L4, double L5, std::vector<double> area);
 
 	std::vector<TopoDS_Shape> CreateNewCrossSection();
-	void getVerticesFromEdges_New(std::vector<TopoDS_Edge> edgeVec);
+	void getVerticesFromEdges_New(TopoDS_Wire wire);
 	TopoDS_Wire Apply2dFilletsForNewCrossSection(/*std::vector<TopoDS_Edge> newEdgeVec, */TopoDS_Wire wire, double radius);
+	std::vector<TopoDS_Wire> createFilletedCrossSections_newShape(std::vector<TopoDS_Wire> wireVec);
 
 	std::vector<TopoDS_Edge> my_newCrossSectionEdgeVec;
 	std::vector<gp_Pnt> newShape_pointVec1;
