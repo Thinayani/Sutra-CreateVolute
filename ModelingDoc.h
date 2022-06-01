@@ -233,11 +233,13 @@ public:
 	std::vector<TopoDS_Wire> CreateNewCrossSection(double L1, double L2, double L3, double L4, double L5, std::vector<double> area);
 
 	std::vector<TopoDS_Shape> CreateNewCrossSection();
+	TopoDS_Wire CreateTransitionStartSection(double L1, double L2, double L3, double area);
 	void getVerticesFromEdges_New(TopoDS_Wire wire);
 	TopoDS_Wire Apply2dFilletsForNewCrossSection(/*std::vector<TopoDS_Edge> newEdgeVec, */TopoDS_Wire wire, double radius);
 	std::vector<TopoDS_Wire> createFilletedCrossSections_newShape(std::vector<TopoDS_Wire> wireVec);
 	std::vector<TopoDS_Shape> mkFilletToNewScrollShapes(std::vector<TopoDS_Shape> scrollShapeVec);
 	TopoDS_Shape ApplyFilletNewScrollShapes(TopoDS_Shape scrollShape, double radius);
+	TopoDS_Shape CreateThruSect(TopoDS_Wire transitionStartWire, TopoDS_Solid smallScrollSolid, TopoDS_Shape smallScrollShell);
 
 	std::vector<TopoDS_Edge> my_newCrossSectionEdgeVec;
 	std::vector<gp_Pnt> newShape_pointVec1;
