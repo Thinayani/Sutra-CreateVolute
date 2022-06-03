@@ -240,6 +240,10 @@ public:
 	std::vector<TopoDS_Shape> mkFilletToNewScrollShapes(std::vector<TopoDS_Shape> scrollShapeVec);
 	TopoDS_Shape ApplyFilletNewScrollShapes(TopoDS_Shape scrollShape, double radius);
 	TopoDS_Shape CreateThruSect(TopoDS_Wire transitionStartWire, TopoDS_Solid smallScrollSolid, TopoDS_Shape smallScrollShell);
+	std::vector<TopoDS_Face> RemoveTopFaceOfScroll(TopoDS_Shape scrollShape);
+	TopoDS_Wire CreateRectangleForAirExit(gp_Pnt centrePnt, double area);
+
+	double my_width;
 
 	std::vector<TopoDS_Edge> my_newCrossSectionEdgeVec;
 	std::vector<gp_Pnt> newShape_pointVec1;
