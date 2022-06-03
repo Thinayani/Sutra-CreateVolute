@@ -232,15 +232,15 @@ TopoDS_Wire GenerateVolute::CreateTransitionStartSection(double L1, double L3, d
 {
 	std::vector<TopoDS_Edge> edgeVec;
 
-	gp_Pnt P1(165, 0, 0);
-	gp_Pnt P2(165, 0, 0 - L1);
-	gp_Pnt P3(165, 0, L3 + L5);
+	//my_widthNewShape = L1 + L3 + L5;
+	double height = area / my_widthNewShape;
 
-	double width = L1 + L3 + L5;
-	double height = area / width;
+	gp_Pnt P1(150, 0, 0);
+	gp_Pnt P2(150, 0, 0 - L1);
+	gp_Pnt P3(150, 0, L3 + L5);
 
-	gp_Pnt P7(165 + height, 0, 0 - L1);
-	gp_Pnt P8(165 + height, 0, L3 + L5);
+	gp_Pnt P7(150 + height, 0, 0 - L1);
+	gp_Pnt P8(150 + height, 0, L3 + L5);
 
 	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(P1, P2);
 	BRepTools::Write(Edge1, "Edge1.brep");
@@ -292,14 +292,14 @@ std::vector<TopoDS_Wire> GenerateVolute::CreateNewCrossSection(double L1, double
 	gp_Pnt P5(150 - L4, 0, L3);
 	gp_Pnt P6(150 - L4, 0, L3 + L5);
 
-	my_width = L1 + L3 + L5;
+	my_widthNewShape = L1 + L3 + L5;
 
 	for (int i = 0; i < area.size(); i++)
 	{
-		double height = area[i] / my_width;
+		my_heightNewShape = area[i] / my_widthNewShape;
 
-		gp_Pnt P7(150 + height, 0, 0 - L1);
-		gp_Pnt P8(150 + height, 0, L3 + L5);
+		gp_Pnt P7(150 + my_heightNewShape, 0, 0 - L1);
+		gp_Pnt P8(150 + my_heightNewShape, 0, L3 + L5);
 
 		TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(P1, P2);
 		BRepTools::Write(Edge1, "Edge1.brep");
@@ -554,12 +554,35 @@ TopoDS_Shape GenerateVolute::SewingScrollShells(std::vector<TopoDS_Shape> shellL
 }
 
 // Get the middle point of a square
-gp_Pnt GenerateVolute::GetMiddlePoint()
+gp_Pnt GenerateVolute::GetMiddlePoint(TopoDS_Wire sectionWires)
 {
-	BRepBuilderAPI_MakeFace mkFace(my_sectionWireList[0], true);
+	//my_sectionWireList[0]
+	BRepBuilderAPI_MakeFace mkFace(sectionWires, true);
 	TopoDS_Face planeFace = mkFace.Face();
 	GProp_GProps SProps;
-	gp_Pnt centre_pnt(150, 0, 25);
+
+	//double height = area / my_widthNewShape;
+
+	gp_Pnt centre_pnt(150, 0,25);
+	BRepGProp::SurfaceProperties(planeFace, SProps);
+	centre_pnt = SProps.CentreOfMass();
+	TopoDS_Vertex V = BRepBuilderAPI_MakeVertex(centre_pnt);
+	BRepTools::Write(V, "centrePnt.brep");
+
+	return centre_pnt;
+}
+
+gp_Pnt GenerateVolute::GetMiddlePointForAirExit(TopoDS_Wire sectionWires, double L3)
+{
+	//my_sectionWireList[0]
+	BRepBuilderAPI_MakeFace mkFace(sectionWires, true);
+	TopoDS_Face planeFace = mkFace.Face();
+	GProp_GProps SProps;
+
+	//double height = area / my_widthNewShape;
+
+	//gp_Pnt centre_pnt(150, 0,25);
+	gp_Pnt centre_pnt(150, 0, +L3 / 2);
 	BRepGProp::SurfaceProperties(planeFace, SProps);
 	centre_pnt = SProps.CentreOfMass();
 	TopoDS_Vertex V = BRepBuilderAPI_MakeVertex(centre_pnt);
@@ -621,12 +644,12 @@ TopoDS_Wire GenerateVolute::CreateRectangleForAirExit(gp_Pnt centrePnt, double a
 	std::vector<TopoDS_Wire> wiresOfRectangle;
 	std::vector<TopoDS_Edge> edgesOfRectangle;
 
-	double my_width;
-	double height = area / my_width;
-	gp_Pnt p1(centrePnt.X() - height, 0, centrePnt.Z() - height);
-	gp_Pnt p2(centrePnt.X() - height, 0, centrePnt.Z() + height);
-	gp_Pnt p3(centrePnt.X() + height, 0, centrePnt.Z() - height);
-	gp_Pnt p4(centrePnt.X() + height, 0, centrePnt.Z() + height);
+	my_widthNewShape;
+	double height = area / my_widthNewShape;
+	gp_Pnt p1(centrePnt.X() - height / 2, 0, centrePnt.Z() - my_widthNewShape / 2);
+	gp_Pnt p2(centrePnt.X() - height / 2, 0, centrePnt.Z() + my_widthNewShape / 2);
+	gp_Pnt p3(centrePnt.X() + my_heightNewShape, 0, centrePnt.Z() - my_widthNewShape / 2);
+	gp_Pnt p4(centrePnt.X() + my_heightNewShape, 0, centrePnt.Z() + my_widthNewShape / 2);
 
 	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(p1, p2);
 	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(p1, p3);
@@ -2062,7 +2085,7 @@ std::vector<TopoDS_Shape> GenerateVolute::mkFilletToSolidScroll(std::vector<Topo
 // make spine curve to create curved pipe
 TopoDS_Wire GenerateVolute::MakeSpineCurve()
 {
-	gp_Pnt midPoint = GetMiddlePoint();
+	gp_Pnt midPoint = GetMiddlePoint(my_sectionWireList[0]);
 	my_circleWire = CreateCircleToGetExitPipe(midPoint, 10000);
 	BRepTools::Write(my_circleWire, "my_circleWire.brep");
 
@@ -2524,7 +2547,7 @@ TopoDS_Shape GenerateVolute::CreateStraightExitPipeWith2dFilletedWire()
 TopoDS_Shape GenerateVolute::CreateStraightExitPipeWithCircularExit()
 {
 	//getVerticesFromEdges();
-	gp_Pnt midPoint = GetMiddlePoint();
+	gp_Pnt midPoint = GetMiddlePoint(my_sectionWireList[0]);
 	TopoDS_Wire circleWire = CreateCircleToGetExitPipe(midPoint, 10000);
 
 	// Getting the translation of the square
@@ -2565,7 +2588,7 @@ TopoDS_Shape GenerateVolute::CreateStraightExitPipeWithCircularExit()
 TopoDS_Shape GenerateVolute::CreateStraightPipe()
 {
 	// Getting the middle point of the square
-	gp_Pnt midPoint = GetMiddlePoint();
+	gp_Pnt midPoint = GetMiddlePoint(my_sectionWireList[0]);
 	//edgesOfSquare.clear();
 	TopoDS_Wire squareWire = CreateSquareToGetExitPipe(midPoint, 3000);
 	BRepTools::Write(squareWire, "squareWire.brep");
@@ -2626,7 +2649,7 @@ TopoDS_Shape GenerateVolute::CreateFilletedStraightPipe()
 TopoDS_Face GenerateVolute::CreateRectangularExit()
 {
 	// Getting the middle point of the square
-	gp_Pnt midPoint = GetMiddlePoint();
+	gp_Pnt midPoint = GetMiddlePoint(my_sectionWireList[0]);
 	edgesOfSquare.clear();
 	TopoDS_Wire squareWire = CreateSquareToGetExitPipe(midPoint, 3000);
 	BRepTools::Write(squareWire, "squareWire.brep");
@@ -2696,6 +2719,9 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 	std::vector<TopoDS_Shape> newShapeShellVector = CreateShellList(rotatedCrossSectionWires, angleVector);
 	std::vector<TopoDS_Face> faceVectorWithoutTop = RemoveTopFaceOfScroll(newShapeShellVector[3]);
 
+	gp_Pnt midPoint = GetMiddlePointForAirExit(transitionStartSection, 75);
+	TopoDS_Wire squareWire = CreateRectangleForAirExit(midPoint, 36000);
+
 	std::vector<TopoDS_Shape> solidVectorOfScrollShape = CreateSolidList(rotatedCrossSectionWires, angleVector);
 	TopoDS_Solid solidSmallScroll = TopoDS::Solid(solidVectorOfScrollShape[3]);
 	BRepTools::Write(solidSmallScroll, "solidSmallScroll.brep");
@@ -2739,7 +2765,7 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 TopoDS_Shape GenerateVolute::CreateThruSect(TopoDS_Wire transitionStartWire, TopoDS_Solid smallScrollSolid, TopoDS_Shape smallScrollShell)
 {
 	// Getting the middle point of the square
-	gp_Pnt midPoint = GetMiddlePoint();
+	gp_Pnt midPoint = GetMiddlePoint(my_sectionWireList[0]);
 	//edgesOfSquare.clear();
 	TopoDS_Wire squareWire = CreateSquareToGetExitPipe(midPoint, 12000);
 	BRepTools::Write(squareWire, "squareWire.brep");
@@ -2769,7 +2795,7 @@ TopoDS_Shape GenerateVolute::CreateThruSect(TopoDS_Wire transitionStartWire, Top
 // Create circular exit plane
 TopoDS_Face GenerateVolute::CreateCircularExit()
 {
-	gp_Pnt midPoint = GetMiddlePoint();
+	gp_Pnt midPoint = GetMiddlePoint(my_sectionWireList[0]);
 	TopoDS_Wire circleWire = CreateCircleToGetExitPipe(midPoint, 10000);
 
 	// Getting the translation of the square

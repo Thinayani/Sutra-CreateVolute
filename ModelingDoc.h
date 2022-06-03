@@ -156,7 +156,7 @@ public:
 	std::vector<TopoDS_Shape> CreateShellList(std::vector<TopoDS_Wire> wireVec, std::vector<double> angleVec);
 	TopoDS_Shape SewingScrollShells(std::vector<TopoDS_Shape> shellList, double tolerance);
 	std::vector<double> CreateAngleVector();
-	gp_Pnt GetMiddlePoint();
+	gp_Pnt GetMiddlePoint(TopoDS_Wire sectionWires);
 	TopoDS_Wire CreateSquareToGetExitPipe(gp_Pnt centerPnt, double area);
 	TopoDS_Wire CreateCircleToGetExitPipe(gp_Pnt centrePnt, double area);
 	TopoDS_Wire GetTranslationOfWire(TopoDS_Shape shape, gp_Vec vec);
@@ -242,8 +242,10 @@ public:
 	TopoDS_Shape CreateThruSect(TopoDS_Wire transitionStartWire, TopoDS_Solid smallScrollSolid, TopoDS_Shape smallScrollShell);
 	std::vector<TopoDS_Face> RemoveTopFaceOfScroll(TopoDS_Shape scrollShape);
 	TopoDS_Wire CreateRectangleForAirExit(gp_Pnt centrePnt, double area);
+	gp_Pnt GetMiddlePointForAirExit(TopoDS_Wire sectionWires, double L3);
 
-	double my_width;
+	double my_widthNewShape;
+	double my_heightNewShape;
 
 	std::vector<TopoDS_Edge> my_newCrossSectionEdgeVec;
 	std::vector<gp_Pnt> newShape_pointVec1;
