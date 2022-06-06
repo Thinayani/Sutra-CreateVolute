@@ -244,6 +244,8 @@ public:
 	TopoDS_Wire CreateRectangleForAirExit(gp_Pnt centrePnt, double area);
 	gp_Pnt GetMiddlePointForAirExit(TopoDS_Wire sectionWires, double L3);
 
+	std::vector<gp_Pnt> gpPntP7vec;
+	std::vector<gp_Pnt> gpPntP8vec;
 	double my_widthNewShape;
 	double my_heightNewShape;
 

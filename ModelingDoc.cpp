@@ -296,10 +296,13 @@ std::vector<TopoDS_Wire> GenerateVolute::CreateNewCrossSection(double L1, double
 
 	for (int i = 0; i < area.size(); i++)
 	{
-		my_heightNewShape = area[i] / my_widthNewShape;
+		double heightNewShape = area[i] / my_widthNewShape;
 
-		gp_Pnt P7(150 + my_heightNewShape, 0, 0 - L1);
-		gp_Pnt P8(150 + my_heightNewShape, 0, L3 + L5);
+		gp_Pnt P7(150 + heightNewShape, 0, 0 - L1);
+		gp_Pnt P8(150 + heightNewShape, 0, L3 + L5);
+
+		gpPntP7vec.push_back(P7);
+		gpPntP8vec.push_back(P8);
 
 		TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(P1, P2);
 		BRepTools::Write(Edge1, "Edge1.brep");
@@ -502,9 +505,9 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateShellList(std::vector<TopoDS_Wir
 	BRepTools::Write(shell, "shell.brep");
 	TopoDS_Shape shell2 = CreateShellThruSect(wireVec, 60, 210, angleVec);
 	BRepTools::Write(shell2, "shell2.brep");
-	TopoDS_Shape shell3 = CreateShellThruSect(wireVec, 210, 330, angleVec);
+	TopoDS_Shape shell3 = CreateShellThruSect(wireVec, 210, 300, angleVec);
 	BRepTools::Write(shell3, "shell3.brep");
-	TopoDS_Shape shell4 = CreateShellThruSect(wireVec, 330, 360, angleVec);
+	TopoDS_Shape shell4 = CreateShellThruSect(wireVec, 300, 360, angleVec);
 	BRepTools::Write(shell4, "shell4.brep");
 
 	my_shellVector.push_back(shell);
@@ -514,6 +517,8 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateShellList(std::vector<TopoDS_Wir
 
 	return my_shellVector;
 }
+
+
 
 // Sewing the created scroll shells to form one shape
 TopoDS_Shape GenerateVolute::SewingScrollShells(std::vector<TopoDS_Shape> shellList, double tolerance)
@@ -644,12 +649,29 @@ TopoDS_Wire GenerateVolute::CreateRectangleForAirExit(gp_Pnt centrePnt, double a
 	std::vector<TopoDS_Wire> wiresOfRectangle;
 	std::vector<TopoDS_Edge> edgesOfRectangle;
 
-	my_widthNewShape;
 	double height = area / my_widthNewShape;
-	gp_Pnt p1(centrePnt.X() - height / 2, 0, centrePnt.Z() - my_widthNewShape / 2);
-	gp_Pnt p2(centrePnt.X() - height / 2, 0, centrePnt.Z() + my_widthNewShape / 2);
-	gp_Pnt p3(centrePnt.X() + my_heightNewShape, 0, centrePnt.Z() - my_widthNewShape / 2);
-	gp_Pnt p4(centrePnt.X() + my_heightNewShape, 0, centrePnt.Z() + my_widthNewShape / 2);
+	gp_Pnt p1(gpPntP7vec[57].X(), 0, gpPntP7vec[57].Z());
+	gp_Pnt p2(gpPntP8vec[57].X(), 0, gpPntP8vec[57].Z());
+	gp_Pnt p3(gpPntP8vec[0].X(), 0, gpPntP8vec[0].Z());
+	gp_Pnt p4(gpPntP7vec[0].X(), 0, gpPntP7vec[0].Z());
+
+	TopoDS_Vertex V1 = BRepBuilderAPI_MakeVertex(p1);
+	BRepTools::Write(V1, "pointOne.brep");
+	TopoDS_Vertex V2 = BRepBuilderAPI_MakeVertex(p1);
+	BRepTools::Write(V2, "pointTwo.brep");
+	TopoDS_Vertex V3 = BRepBuilderAPI_MakeVertex(p1);
+	BRepTools::Write(V3, "pointThree.brep");
+	TopoDS_Vertex V4 = BRepBuilderAPI_MakeVertex(p1);
+	BRepTools::Write(V4, "pointFour.brep");
+
+	double XcoordDif1 = gpPntP8vec[0].X() - gpPntP8vec[57].X();
+	double XcoordDif2 = gpPntP7vec[0].X() - gpPntP7vec[57].X();
+
+	gp_Vec myVec1(0, XcoordDif1, 0);
+	gp_Vec myVec2(0, XcoordDif2, 0);
+
+	p3.Translate(myVec1);
+	p4.Translate(myVec2);
 
 	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(p1, p2);
 	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(p1, p3);
@@ -2184,11 +2206,12 @@ std::vector<TopoDS_Face> GenerateVolute::RemoveTopFaceOfScroll(TopoDS_Shape scro
 	for (TopExp_Explorer explr(scrollShape, TopAbs_FACE); explr.More(); explr.Next())
 	{
 		scrollFace = TopoDS::Face(explr.Current());
+		BRepTools::Write(scrollFace, "scrollFace.brep");
 		
 		faceCounter++;
 		if (faceCounter == 4)
 		{
-			BRepTools::Write(scrollFace, "scrollFace.brep");
+			BRepTools::Write(scrollFace, "smallScrollFace.brep");
 			
 		}
 		else
