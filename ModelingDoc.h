@@ -241,14 +241,21 @@ public:
 	TopoDS_Shape ApplyFilletNewScrollShapes(TopoDS_Shape scrollShape, double radius);
 	TopoDS_Shape CreateThruSect(TopoDS_Wire transitionStartWire, TopoDS_Solid smallScrollSolid, TopoDS_Shape smallScrollShell);
 	std::vector<TopoDS_Face> RemoveTopFaceOfScroll(TopoDS_Shape scrollShape);
-	TopoDS_Wire CreateRectangleForAirExit(gp_Pnt centrePnt, double area);
+	TopoDS_Wire CreateRectangleForAirExit(int numSections);
 	gp_Pnt GetMiddlePointForAirExit(TopoDS_Wire sectionWires, double L3);
+	std::vector<gp_Pnt> GetTopVerticesOfRotatedSection(std::vector<TopoDS_Wire> wireVec);
+	std::vector<TopoDS_Wire> CreateWiresForAirExit(double angleOfSmallScroll);
+	TopoDS_Shape CreateExitPipeThruSect(std::vector<TopoDS_Wire> wireVector, Standard_Boolean isSolid);
 
 	std::vector<gp_Pnt> gpPntP7vec;
 	std::vector<gp_Pnt> gpPntP8vec;
+	std::vector<gp_Pnt> TopWire_gpPntVec1;
+	std::vector<gp_Pnt> TopWire_gpPntVec2;
+	int numberOfSectionWires;
 	double my_widthNewShape;
 	double my_heightNewShape;
 
+	std::vector<TopoDS_Wire> wiresVecWithoutBase;
 	std::vector<TopoDS_Edge> my_newCrossSectionEdgeVec;
 	std::vector<gp_Pnt> newShape_pointVec1;
 	std::vector<gp_Pnt> newShape_pointVec2;

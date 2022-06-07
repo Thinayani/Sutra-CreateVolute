@@ -503,9 +503,9 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateShellList(std::vector<TopoDS_Wir
 	// Calling the CreateShell function 4 times 
 	TopoDS_Shape shell = CreateShellThruSect(wireVec, 0, 60, angleVec);
 	BRepTools::Write(shell, "shell.brep");
-	TopoDS_Shape shell2 = CreateShellThruSect(wireVec, 60, 210, angleVec);
+	TopoDS_Shape shell2 = CreateShellThruSect(wireVec, 60, 180, angleVec);
 	BRepTools::Write(shell2, "shell2.brep");
-	TopoDS_Shape shell3 = CreateShellThruSect(wireVec, 210, 300, angleVec);
+	TopoDS_Shape shell3 = CreateShellThruSect(wireVec, 180, 300, angleVec);
 	BRepTools::Write(shell3, "shell3.brep");
 	TopoDS_Shape shell4 = CreateShellThruSect(wireVec, 300, 360, angleVec);
 	BRepTools::Write(shell4, "shell4.brep");
@@ -642,45 +642,102 @@ TopoDS_Wire GenerateVolute::CreateSquareToGetExitPipe(gp_Pnt centrePnt, double a
 	return wire;
 }
 
-// Create a rectangle for the exit plane
-TopoDS_Wire GenerateVolute::CreateRectangleForAirExit(gp_Pnt centrePnt, double area)
+std::vector<gp_Pnt> GenerateVolute::GetTopVerticesOfRotatedSection(std::vector<TopoDS_Wire> wireVec)
 {
-	TopoDS_Wire Wire1;
+	
+	//std::vector<gp_Pnt> TopWireVertexVec1;
+	//std::vector<gp_Pnt> TopWireVertexVec2;
+
+	for (int i = 0; i < wireVec.size(); i++)
+	{
+		int counter = 0;
+
+		for (TopExp_Explorer ex(wireVec[i], TopAbs_VERTEX); ex.More(); ex.Next())
+		{
+			TopoDS_Vertex vertex = TopoDS::Vertex(ex.Current());
+			BRepTools::Write(vertex, "TopWireVertex.brep");
+			
+			counter++;
+			if (counter == 6)
+			{
+				gp_Pnt topPnt1 = BRep_Tool::Pnt(vertex);
+				BRepTools::Write(vertex, "TopWireVertex1.brep");
+				TopWire_gpPntVec1.push_back(topPnt1);
+			}
+			if (counter == 8)
+			{
+				gp_Pnt topPnt2 = BRep_Tool::Pnt(vertex);
+				BRepTools::Write(vertex, "TopWireVertex2.brep");
+				TopWire_gpPntVec2.push_back(topPnt2);
+			}
+		}
+	}
+	
+	return TopWire_gpPntVec1;
+}
+
+std::vector<TopoDS_Wire> GenerateVolute::CreateWiresForAirExit(double angleOfSmallScroll)
+{
+
+	std::vector<TopoDS_Wire> transWireVec;
+
+	numberOfSectionWires = angleOfSmallScroll / 360 * 60 + 1;
+	int sectionNumber = 61 - numberOfSectionWires;
+	
+	for (int i = 60; i > sectionNumber - 1; i--)
+	{
+		TopoDS_Wire transWire = CreateRectangleForAirExit(i);
+		BRepTools::Write(transWire, "transWire.brep");
+		transWireVec.push_back(transWire);
+	}
+
+	return transWireVec;
+}
+
+// Create a rectangle for the exit plane
+TopoDS_Wire GenerateVolute::CreateRectangleForAirExit(int numSections)
+{
+	TopoDS_Wire WireWithBase;
+	TopoDS_Wire WireWithoutBase;
 	std::vector<TopoDS_Wire> wiresOfRectangle;
 	std::vector<TopoDS_Edge> edgesOfRectangle;
 
-	double height = area / my_widthNewShape;
-	gp_Pnt p1(gpPntP7vec[57].X(), 0, gpPntP7vec[57].Z());
-	gp_Pnt p2(gpPntP8vec[57].X(), 0, gpPntP8vec[57].Z());
-	gp_Pnt p3(gpPntP8vec[0].X(), 0, gpPntP8vec[0].Z());
-	gp_Pnt p4(gpPntP7vec[0].X(), 0, gpPntP7vec[0].Z());
+	gp_Pnt p1(TopWire_gpPntVec1[numSections]);
+	gp_Pnt p2(TopWire_gpPntVec2[numSections]);
+	gp_Pnt p3(TopWire_gpPntVec2[0]);
+	gp_Pnt p4(TopWire_gpPntVec1[0]);
 
 	TopoDS_Vertex V1 = BRepBuilderAPI_MakeVertex(p1);
 	BRepTools::Write(V1, "pointOne.brep");
-	TopoDS_Vertex V2 = BRepBuilderAPI_MakeVertex(p1);
+	TopoDS_Vertex V2 = BRepBuilderAPI_MakeVertex(p2);
 	BRepTools::Write(V2, "pointTwo.brep");
-	TopoDS_Vertex V3 = BRepBuilderAPI_MakeVertex(p1);
-	BRepTools::Write(V3, "pointThree.brep");
-	TopoDS_Vertex V4 = BRepBuilderAPI_MakeVertex(p1);
-	BRepTools::Write(V4, "pointFour.brep");
+	
+	double XcoordDif1 = TopWire_gpPntVec2[0].Y() - TopWire_gpPntVec2[numSections].Y();
+	double XcoordDif2 = TopWire_gpPntVec1[0].Y() - TopWire_gpPntVec1[numSections].Y();
 
-	double XcoordDif1 = gpPntP8vec[0].X() - gpPntP8vec[57].X();
-	double XcoordDif2 = gpPntP7vec[0].X() - gpPntP7vec[57].X();
-
-	gp_Vec myVec1(0, XcoordDif1, 0);
-	gp_Vec myVec2(0, XcoordDif2, 0);
+	gp_Vec myVec1(0, -XcoordDif1, 0);
+	gp_Vec myVec2(0, -XcoordDif2, 0);
 
 	p3.Translate(myVec1);
 	p4.Translate(myVec2);
 
-	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(p1, p2);
-	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(p1, p3);
-	TopoDS_Edge Edge3 = BRepBuilderAPI_MakeEdge(p3, p4);
-	TopoDS_Edge Edge4 = BRepBuilderAPI_MakeEdge(p2, p4);
+	TopoDS_Vertex V3 = BRepBuilderAPI_MakeVertex(p3);
+	BRepTools::Write(V3, "pointThree.brep");
+	TopoDS_Vertex V4 = BRepBuilderAPI_MakeVertex(p4);
+	BRepTools::Write(V4, "pointFour.brep");
 
-	Wire1 = BRepBuilderAPI_MakeWire(Edge1, Edge2, Edge3, Edge4);
-	BRepTools::Write(Wire1, "Wire1.brep");
-	wiresOfRectangle.push_back(Wire1);
+	TopoDS_Edge Edge1 = BRepBuilderAPI_MakeEdge(p1, p2);
+	TopoDS_Edge Edge2 = BRepBuilderAPI_MakeEdge(p2, p3);
+	TopoDS_Edge Edge3 = BRepBuilderAPI_MakeEdge(p3, p4);
+	TopoDS_Edge Edge4 = BRepBuilderAPI_MakeEdge(p4, p1);
+
+	WireWithBase = BRepBuilderAPI_MakeWire(Edge1, Edge2, Edge3, Edge4);
+	BRepTools::Write(WireWithBase, "WireWithBase.brep");
+	wiresOfRectangle.push_back(WireWithBase);
+
+	WireWithoutBase = BRepBuilderAPI_MakeWire(Edge2, Edge3, Edge4);
+	BRepTools::Write(WireWithoutBase, "WireWithoutBase.brep");
+	wiresVecWithoutBase.push_back(WireWithoutBase);
 
 	edgesOfRectangle.push_back(Edge1);
 	BRepTools::Write(Edge1, "Edge_1.brep");
@@ -705,6 +762,28 @@ TopoDS_Wire GenerateVolute::CreateRectangleForAirExit(gp_Pnt centrePnt, double a
 	return wholeWire;
 }
 
+// Creating thruSection of Air Exit pipe
+TopoDS_Shape GenerateVolute::CreateExitPipeThruSect(std::vector<TopoDS_Wire> wireVector, Standard_Boolean isSolid)
+{
+	BRepOffsetAPI_ThruSections BTS1(isSolid, Standard_False, 1.0e-10);
+	BTS1.SetMaxDegree(2);
+
+	for (int i = 0; i < wireVector.size(); i++)
+	{
+		TopoDS_Wire aWire = wireVector[i];
+		BTS1.AddWire(aWire);
+
+	}
+	BTS1.Build();
+	TopoDS_Shape shellShape = BTS1.Shape();
+
+	return shellShape;
+}
+
+//std::vector<TopoDS_Wire> GenerateVolute::GetTranslatedWire()
+//{
+//	Translation
+//}
 
 // Getting the largest 2D Filleted wire 
 TopoDS_Wire GenerateVolute::GetLargest2dFilletWire()
@@ -1189,6 +1268,7 @@ TopoDS_Wire GenerateVolute::GetTranslationOfWire(TopoDS_Shape shape, gp_Vec vec)
 
 	TopoDS_Shape trnsShape = frontTrans.Shape();
 	TopoDS_Wire wire = TopoDS::Wire(trnsShape);
+	BRepTools::Write(wire, "wire.brep");
 
 	return wire;
 }
@@ -2741,9 +2821,24 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 
 	std::vector<TopoDS_Shape> newShapeShellVector = CreateShellList(rotatedCrossSectionWires, angleVector);
 	std::vector<TopoDS_Face> faceVectorWithoutTop = RemoveTopFaceOfScroll(newShapeShellVector[3]);
+	std::vector<gp_Pnt> verticesOfTopWire = GetTopVerticesOfRotatedSection(rotatedCrossSectionWires);
 
 	gp_Pnt midPoint = GetMiddlePointForAirExit(transitionStartSection, 75);
-	TopoDS_Wire squareWire = CreateRectangleForAirExit(midPoint, 36000);
+	std::vector<TopoDS_Wire> transCrossSections = CreateWiresForAirExit(60);
+	TopoDS_Shape airExitPipeThruSection = CreateExitPipeThruSect(transCrossSections, Standard_False);
+	BRepTools::Write(airExitPipeThruSection, "airExitPipeThruSection.brep");
+	TopoDS_Shape airExitPipeThruSectionSolid = CreateExitPipeThruSect(transCrossSections, Standard_True);
+	BRepTools::Write(airExitPipeThruSectionSolid, "airExitPipeThruSectionSolid.brep");
+
+	TopoDS_Shape airExitPipeThruSectionWithoutBase = CreateExitPipeThruSect(wiresVecWithoutBase, Standard_False);
+	BRepTools::Write(airExitPipeThruSectionWithoutBase, "airExitPipeThruSectionWithoutBase.brep");
+	
+	gp_Vec myVec(0, -50, 0);
+	TopoDS_Wire transitionExitWire = GetTranslationOfWire(transCrossSections[numberOfSectionWires-1], myVec);
+	BRepTools::Write(transitionExitWire, "transitionExitWire.brep");
+
+	TopoDS_Shape transitionExitPart = ThruSectExitPipe(transCrossSections[numberOfSectionWires-1], transitionExitWire, Standard_False);
+	BRepTools::Write(transitionExitPart, "transitionExitPart.brep");
 
 	std::vector<TopoDS_Shape> solidVectorOfScrollShape = CreateSolidList(rotatedCrossSectionWires, angleVector);
 	TopoDS_Solid solidSmallScroll = TopoDS::Solid(solidVectorOfScrollShape[3]);
