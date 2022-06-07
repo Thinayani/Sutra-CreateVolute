@@ -1268,7 +1268,6 @@ TopoDS_Wire GenerateVolute::GetTranslationOfWire(TopoDS_Shape shape, gp_Vec vec)
 
 	TopoDS_Shape trnsShape = frontTrans.Shape();
 	TopoDS_Wire wire = TopoDS::Wire(trnsShape);
-	BRepTools::Write(wire, "wire.brep");
 
 	return wire;
 }
@@ -1585,6 +1584,83 @@ TopoDS_Shape GenerateVolute::SewBaseScrollWithExitPipe(std::vector<TopoDS_Shape>
 
 	BRepTools::Write(sewedShellWithoutExitPlane, "sewedShellWithoutExitPlane.brep");
 	
+	return sewedShape;
+}
+
+// sewing scroll shapes, exit pipe and input planes of the volute with new cross section
+TopoDS_Shape GenerateVolute::SewVoluteWithTransitionPipe(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> smallScrollFaces, std::vector<TopoDS_Shape> exitPipe, std::vector<TopoDS_Shape> transitionPart, double tolerance)
+{
+	BRepBuilderAPI_Sewing sewer;
+	sewer.SetTolerance(tolerance);
+
+	//sroll vector loop sewer without last one
+	for (int i = 0; i < scrollShells.size(); i++)
+	{
+		sewer.Add(scrollShells[i]);
+		BRepTools::Write(scrollShells[i], "scrollShells_test.brep");
+	}
+
+	//inputplanelist 
+	for (int i = 0; i < smallScrollFaces.size(); i++)
+	{
+		sewer.Add(smallScrollFaces[i]);
+		BRepTools::Write(smallScrollFaces[i], "smallScrollFaces_test.brep");
+	}
+
+	//boolean shapes 
+	for (int i = 0; i < exitPipe.size(); i++)
+	{
+		sewer.Add(exitPipe[i]);
+	}
+
+	//exit plane list
+	for (int i = 0; i < transitionPart.size(); i++)
+	{
+		sewer.Add(transitionPart[i]);
+	}
+
+	sewer.Perform();
+
+	//extrat the shell
+	TopoDS_Shape sewedShape = sewer.SewedShape();
+	BRepTools::Write(sewedShape, "sewedShape.brep");
+
+	//sewer voluteWithoutInputExitPlane
+	BRepBuilderAPI_Sewing sewerVoluteWithoutInputExitPlane;
+	sewerVoluteWithoutInputExitPlane.SetTolerance(tolerance);
+	//sroll vector loop sewer without last one
+	for (int i = 0; i < scrollShells.size(); i++)
+	{
+		sewerVoluteWithoutInputExitPlane.Add(scrollShells[i]);
+	}
+
+	//inputplanelist 
+	for (int i = 0; i < smallScrollFaces.size(); i++)
+	{
+		sewerVoluteWithoutInputExitPlane.Add(smallScrollFaces[i]);
+	}
+
+	//boolean shapes 
+	for (int i = 0; i < exitPipe.size(); i++)
+	{
+		sewerVoluteWithoutInputExitPlane.Add(exitPipe[i]);
+	}
+
+	sewerVoluteWithoutInputExitPlane.Perform();
+
+	//extrat the shell
+	TopoDS_Shape sewedShapeWithoutExitPlane = sewerVoluteWithoutInputExitPlane.SewedShape();
+	BRepTools::Write(sewedShapeWithoutExitPlane, "sewedShapeWithoutExitPlane.brep");
+	TopoDS_Shell sewedShellWithoutExitPlane;
+
+	for (TopExp_Explorer Expl(sewerVoluteWithoutInputExitPlane.SewedShape(), TopAbs_SHELL); Expl.More(); Expl.Next())
+	{
+		sewedShellWithoutExitPlane = TopoDS::Shell(Expl.Current());
+
+	}
+
+	BRepTools::Write(sewedShellWithoutExitPlane, "sewedShellWithoutExitPlane.brep");
+
 	return sewedShape;
 }
 
