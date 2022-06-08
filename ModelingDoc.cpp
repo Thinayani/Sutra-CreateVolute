@@ -2112,7 +2112,7 @@ TopoDS_Shape GenerateVolute::ApplyFilletNewVolute(TopoDS_Shape voluteShape, doub
 
 		counter1++;
 
-		if (counter1 == 11 || counter1 == 15 || counter1 == 43 || counter1 == 47)
+		if (counter1 == 11 || counter1 == 15)
 		{
 			TopoDS_Edge edge = TopoDS::Edge(ex.Current());
 			BRepTools::Write(edge, "topEdge.brep");
@@ -2931,6 +2931,7 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 	TopoDS_Shape newSewedVoluteShape = SewVoluteWithTransitionPipe(newShapeShellVector, faceVectorWithoutTop, airExitPipeThruSectionWithoutBase_vec, transitionExitPart_vec, 1.E-06);
 	BRepTools::Write(newSewedVoluteShape, "newSewedVoluteShape.brep");
 	TopoDS_Shape filletedNewVoluteShape = ApplyFilletNewVolute(newSewedVoluteShape, 9);
+	BRepTools::Write(filletedNewVoluteShape, "filletedNewVoluteShape.brep");
 
 	std::vector<TopoDS_Shape> filletedScrollShapes = mkFilletToNewScrollShapes(newShapeShellVector);
 
