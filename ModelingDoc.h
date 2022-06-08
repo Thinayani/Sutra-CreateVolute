@@ -247,11 +247,14 @@ public:
 	std::vector<TopoDS_Wire> CreateWiresForAirExit(double angleOfSmallScroll);
 	TopoDS_Shape CreateExitPipeThruSect(std::vector<TopoDS_Wire> wireVector, Standard_Boolean isSolid);
 	TopoDS_Shape SewVoluteWithTransitionPipe(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> smallScrollFaces, std::vector<TopoDS_Shape> exitPipe, std::vector<TopoDS_Shape> transitionPart, double tolerance);
+	TopoDS_Shape ApplyFilletNewVolute(TopoDS_Shape voluteShape, double radius);
 
 	std::vector<gp_Pnt> gpPntP7vec;
 	std::vector<gp_Pnt> gpPntP8vec;
 	std::vector<gp_Pnt> TopWire_gpPntVec1;
 	std::vector<gp_Pnt> TopWire_gpPntVec2;
+	std::vector<TopoDS_Shape> airExitPipeThruSectionWithoutBase_vec;
+	std::vector<TopoDS_Shape> transitionExitPart_vec;
 	int numberOfSectionWires;
 	double my_widthNewShape;
 	double my_heightNewShape;
