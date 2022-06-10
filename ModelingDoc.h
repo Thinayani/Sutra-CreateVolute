@@ -240,19 +240,20 @@ public:
 	std::vector<TopoDS_Shape> mkFilletToNewScrollShapes(std::vector<TopoDS_Shape> scrollShapeVec);
 	TopoDS_Shape ApplyFilletNewScrollShapes(TopoDS_Shape scrollShape, double radius);
 	TopoDS_Shape CreateThruSect(TopoDS_Wire transitionStartWire, TopoDS_Solid smallScrollSolid, TopoDS_Shape smallScrollShell);
-	std::vector<TopoDS_Face> RemoveTopFaceOfScroll(TopoDS_Shape scrollShape);
+	std::vector<TopoDS_Face> RemoveTopFaceOfScroll(/*TopoDS_Shape scrollShape*/ std::vector<TopoDS_Shape> scrollShapeVec);
 	TopoDS_Wire CreateRectangleForAirExit(int numSections);
 	gp_Pnt GetMiddlePointForAirExit(TopoDS_Wire sectionWires, double L3);
 	std::vector<gp_Pnt> GetTopVerticesOfRotatedSection(std::vector<TopoDS_Wire> wireVec);
 	std::vector<TopoDS_Wire> CreateWiresForAirExit(double angleOfSmallScroll);
 	TopoDS_Shape CreateExitPipeThruSect(std::vector<TopoDS_Wire> wireVector, Standard_Boolean isSolid);
-	TopoDS_Shape SewVoluteWithTransitionPipe(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> smallScrollFaces, std::vector<TopoDS_Shape> exitPipe, std::vector<TopoDS_Shape> transitionPart, TopoDS_Face transitionExit, double tolerance);
+	TopoDS_Shape SewVoluteWithTransitionPipe(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> smallScrollFaces, std::vector<TopoDS_Shape> exitPipe, std::vector<TopoDS_Face> transitionPart, TopoDS_Face transitionExit, TopoDS_Shape filletedSewedFaces, double tolerance);
 	TopoDS_Shape ApplyFilletNewVolute(TopoDS_Shape shapeToBeFilleted, std::vector<TopoDS_Edge> edgeVec, double radius);
 	TopoDS_Edge IterateEdgesOfaShape(TopoDS_Shape shape);
 	TopoDS_Edge IterateEdgesOfExitPipe(TopoDS_Shape airExitPipe);
 	std::vector<TopoDS_Face> IterateFacesFromaShape(TopoDS_Shape shape1, TopoDS_Shape shape2);
 	TopoDS_Shape SewFacesToGetShape(std::vector<TopoDS_Face> faceVec, double tolerance);
 	TopoDS_Shape ApplyFilletsToaShape(TopoDS_Shape shape, double radius);
+	std::vector<TopoDS_Face> IterateFacesOfTransitionPipe(TopoDS_Shape transitionShape);
 
 	std::vector<gp_Pnt> gpPntP7vec;
 	std::vector<gp_Pnt> gpPntP8vec;
