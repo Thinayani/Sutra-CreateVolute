@@ -246,26 +246,37 @@ public:
 	std::vector<gp_Pnt> GetTopVerticesOfRotatedSection(std::vector<TopoDS_Wire> wireVec);
 	std::vector<TopoDS_Wire> CreateWiresForAirExit(double angleOfSmallScroll);
 	TopoDS_Shape CreateExitPipeThruSect(std::vector<TopoDS_Wire> wireVector, Standard_Boolean isSolid);
-	TopoDS_Shape SewVoluteWithTransitionPipe(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> smallScrollFaces, std::vector<TopoDS_Shape> exitPipe, std::vector<TopoDS_Face> transitionPart, TopoDS_Face transitionExit, TopoDS_Shape filletedSewedFaces, double tolerance);
+	TopoDS_Shape SewVoluteWithTransitionPipe(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> smallScrollFaces, std::vector<TopoDS_Shape> exitPipe, std::vector<TopoDS_Face> transitionPart, TopoDS_Face transitionExit, TopoDS_Shape filletedSewedFaces, std::vector<TopoDS_Shape> shapeFillingVec, double tolerance);
 	TopoDS_Shape ApplyFilletNewVolute(TopoDS_Shape shapeToBeFilleted, std::vector<TopoDS_Edge> edgeVec, double radius);
 	TopoDS_Edge IterateEdgesOfaShape(TopoDS_Shape shape);
 	TopoDS_Edge IterateEdgesOfExitPipe(TopoDS_Shape airExitPipe);
-	std::vector<TopoDS_Face> IterateFacesFromaShape(TopoDS_Shape shape1, TopoDS_Shape shape2);
-	TopoDS_Shape SewFacesToGetShape(std::vector<TopoDS_Face> faceVec, double tolerance);
+	std::vector<TopoDS_Shape> IterateFacesFromaShape(TopoDS_Shape shape1, TopoDS_Shape shape2);
+	TopoDS_Shape SewFacesToGetShape(std::vector<TopoDS_Shape> faceVec, double tolerance);
 	TopoDS_Shape ApplyFilletsToaShape(TopoDS_Shape shape, double radius);
 	std::vector<TopoDS_Face> IterateFacesOfTransitionPipe(TopoDS_Shape transitionShape);
+	TopoDS_Shape ApplyFilletsToSewedShape(TopoDS_Shape shape, double radius);
+	void IterateEdgesOfSewedShape(TopoDS_Shape shape);
+	TopoDS_Wire MakeWireFromEdges(std::vector<TopoDS_Edge> edgeVec);
+	TopoDS_Face MakeFaceFromWireAndBaseSurface(TopoDS_Wire wire);
 
 	std::vector<gp_Pnt> gpPntP7vec;
 	std::vector<gp_Pnt> gpPntP8vec;
 	std::vector<gp_Pnt> TopWire_gpPntVec1;
 	std::vector<gp_Pnt> TopWire_gpPntVec2;
+	std::vector<TopoDS_Shape> smallholeFacVec;
 	std::vector<TopoDS_Shape> airExitPipeThruSectionWithoutBase_vec;
 	std::vector<TopoDS_Shape> transitionExitPart_vec;
+	std::vector<TopoDS_Shape> transitionFaceVec;
 	int numberOfSectionWires;
 	double my_widthNewShape;
 	double my_heightNewShape;
 
 	std::vector<TopoDS_Wire> wiresVecWithoutBase;
+	std::vector<TopoDS_Edge> edgeVec1;
+	std::vector<TopoDS_Edge> edgeVec2;
+
+
+	std::vector<TopoDS_Edge> smallTriangleShapeWires;
 	std::vector<TopoDS_Edge> my_newCrossSectionEdgeVec;
 	std::vector<TopoDS_Edge> edgesToBeFilleted;
 	std::vector<gp_Pnt> newShape_pointVec1;
