@@ -261,6 +261,9 @@ public:
 	void IterateEdgesFromTransitionExit(TopoDS_Shape shape1);
 	TopoDS_Face MakeNewFaceFromWires(TopoDS_Wire wire);
 	TopoDS_Shape ApplyFilletsToTranisition(TopoDS_Shape shape, double radius);
+	TopoDS_Shape SewVoluteWith3DFillets(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> smallScrollFaces, std::vector<TopoDS_Shape> exitPipe, TopoDS_Face transitionExit, TopoDS_Shape filletedSewedFaces, double tolerance);
+	TopoDS_Wire CreateFilletedTranisitionExitWire(TopoDS_Shape shape);
+	std::vector<TopoDS_Shape> GetFaceListFromExitShape(TopoDS_Shape shape);
 
 	std::vector<gp_Pnt> gpPntP7vec;
 	std::vector<gp_Pnt> gpPntP8vec;

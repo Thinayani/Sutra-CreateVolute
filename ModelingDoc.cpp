@@ -1696,13 +1696,6 @@ TopoDS_Shape GenerateVolute::SewVoluteWithTransitionPipe(std::vector<TopoDS_Shap
 		BRepTools::Write(newFaceVector[i], "newFaceVector_test.brep");
 	}
 
-	////exit plane list
-	//for (int i = 0; i < shapeFillingVec.size(); i++)
-	//{
-	//	sewer.Add(shapeFillingVec[i]);
-	//	BRepTools::Write(shapeFillingVec[i], "shapeFillingVec_test.brep");
-	//}
-
 	sewer.Add(transitionPart);
 	sewer.Add(transitionExit);
 	sewer.Add(filletedSewedFaces);
@@ -1714,6 +1707,55 @@ TopoDS_Shape GenerateVolute::SewVoluteWithTransitionPipe(std::vector<TopoDS_Shap
 	BRepTools::Write(sewedShape, "sewedShape.brep");
 
 	
+	TopoDS_Shell sewedShellWithoutExitPlane;
+
+	for (TopExp_Explorer Expl(sewer.SewedShape(), TopAbs_SHELL); Expl.More(); Expl.Next())
+	{
+		sewedShellWithoutExitPlane = TopoDS::Shell(Expl.Current());
+
+	}
+
+	BRepTools::Write(sewedShellWithoutExitPlane, "sewedShellWithoutExitPlane.brep");
+
+	return sewedShape;
+}
+
+TopoDS_Shape GenerateVolute::SewVoluteWith3DFillets(std::vector<TopoDS_Shape> scrollShells, std::vector<TopoDS_Face> smallScrollFaces, std::vector<TopoDS_Shape> exitPipe, TopoDS_Face transitionExit, TopoDS_Shape filletedSewedFaces, double tolerance)
+{
+	BRepBuilderAPI_Sewing sewer;
+	sewer.SetTolerance(tolerance);
+
+	//sroll vector loop sewer without last one
+	for (int i = 0; i < scrollShells.size() - 2; i++)
+	{
+		sewer.Add(scrollShells[i]);
+		BRepTools::Write(scrollShells[i], "scrollShells_test.brep");
+	}
+
+	//inputplanelist 
+	for (int i = 0; i < smallScrollFaces.size(); i++)
+	{
+		sewer.Add(smallScrollFaces[i]);
+		BRepTools::Write(smallScrollFaces[i], "smallScrollFaces_test.brep");
+	}
+
+	//boolean shapes 
+	for (int i = 0; i < exitPipe.size(); i++)
+	{
+		sewer.Add(exitPipe[i]);
+		BRepTools::Write(exitPipe[i], "exitPipe_test.brep");
+	}
+
+	sewer.Add(transitionExit);
+	sewer.Add(filletedSewedFaces);
+
+	sewer.Perform();
+
+	//extrat the shell
+	TopoDS_Shape sewedShape = sewer.SewedShape();
+	BRepTools::Write(sewedShape, "sewedShape.brep");
+
+
 	TopoDS_Shell sewedShellWithoutExitPlane;
 
 	for (TopExp_Explorer Expl(sewer.SewedShape(), TopAbs_SHELL); Expl.More(); Expl.Next())
@@ -2192,7 +2234,7 @@ TopoDS_Shape GenerateVolute::ApplyFilletsToTranisition(TopoDS_Shape shape, doubl
 
 		counter1++;
 
-		if (counter1 == 3)
+		if (counter1 == 2 || counter1 == 12 || counter1 == 6 || counter1 == 10 || counter1 == 21 || counter1 == 24)
 		{
 			BRepTools::Write(anEdge, "FilletEdge.brep");
 			mkFillet.Add(radius, anEdge);
@@ -2202,6 +2244,65 @@ TopoDS_Shape GenerateVolute::ApplyFilletsToTranisition(TopoDS_Shape shape, doubl
 	filletShape = mkFillet.Shape();
 
 	return filletShape;
+}
+
+std::vector<TopoDS_Shape> GenerateVolute::GetFaceListFromExitShape(TopoDS_Shape shape)
+{
+
+	std::vector<TopoDS_Shape> faceVec;
+
+	int counter1 = 0;
+	for (TopExp_Explorer ex(shape, TopAbs_FACE); ex.More(); ex.Next())
+	{
+		TopoDS_Face face = TopoDS::Face(ex.Current());
+		BRepTools::Write(face, "face.brep");
+
+		counter1++;
+
+		if (counter1 == 1 || counter1 == 4 || counter1 == 5 || counter1 == 9 || counter1 == 10 || counter1 == 14 || counter1 == 15 || counter1 == 18)
+		{
+			faceVec.push_back(face);
+		}
+	}
+
+	return faceVec;
+}
+
+TopoDS_Wire GenerateVolute::CreateFilletedTranisitionExitWire(TopoDS_Shape shape)
+{
+	std::vector<TopoDS_Wire> wires;
+	std::vector<TopoDS_Edge> edgeVec;
+	
+	int counter1 = 0;
+	for (TopExp_Explorer ex(shape, TopAbs_EDGE); ex.More(); ex.Next())
+	{
+		TopoDS_Edge anEdge = TopoDS::Edge(ex.Current());
+		BRepTools::Write(anEdge, "EdgeToFillet.brep");
+
+		counter1++;
+
+		if (counter1 == 6 || counter1 == 10 || counter1 == 14 || counter1 == 18 || counter1 == 22 || counter1 == 26 || counter1 == 30 || counter1 == 36)
+		{
+			edgeVec.push_back(anEdge);
+		}
+	}
+
+	TopoDS_Wire wire;
+	BRepLib_MakeWire wireMaker;
+
+	for (int i = 0; i < edgeVec.size(); i++)
+	{
+		TopoDS_Wire Wire = BRepBuilderAPI_MakeWire(edgeVec[i]);
+		wires.push_back(Wire);
+	}
+
+	for (int i = 0; i < wires.size(); i++)
+	{
+		wireMaker.Add(wires[i]);
+	}
+	wire = wireMaker.Wire();    
+
+	return wire;
 }
 
 void GenerateVolute::IterateEdgesOfSewedShape(TopoDS_Shape shape)
@@ -2713,7 +2814,6 @@ std::vector<TopoDS_Face> GenerateVolute::RemoveTopFaceOfScroll(/*TopoDS_Shape sc
 		}
 	}
 	
-
 	return scrollFaceVector;
 }
 
@@ -3309,45 +3409,56 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 
 	my_newFaceShapeVec.push_back(transitionFaceVec[1]);
 	my_newFaceShapeVec.push_back(filletedShapeWithTwoFaces);
+	my_newFaceShapeVec.push_back(faceVectorWithoutTop[9]);
+	my_newFaceShapeVec.push_back(faceVectorWithoutTop[10]);
 	TopoDS_Shape sewedTranisitionExit = SewFacesToGetShape(my_newFaceShapeVec, 1.E-06);
 	BRepTools::Write(sewedTranisitionExit, "sewedTranisitionExit.brep");
 
 	TopoDS_Shape filletedTransition = ApplyFilletsToTranisition(sewedTranisitionExit, 9);
-	BRepTools::Write(sewedTranisitionExit, "sewedTranisitionExit.brep");
+	BRepTools::Write(filletedTransition, "filletedTransition.brep");
 
-	std::vector<TopoDS_Shape> transitionExitWithNewFaces;
-	transitionExitWithNewFaces.push_back(sewedTranisitionExit);
+	std::vector<TopoDS_Shape> transitionFaceList = GetFaceListFromExitShape(filletedTransition);
 
+	TopoDS_Shape sewedFilletedTranisitionExit = SewFacesToGetShape(transitionFaceList, 1.E-06);
+	BRepTools::Write(sewedFilletedTranisitionExit, "sewedFilletedTranisitionExit.brep");
 
+	TopoDS_Wire filletedTransitionExitWire = CreateFilletedTranisitionExitWire(sewedFilletedTranisitionExit);
+	BRepTools::Write(filletedTransitionExitWire, "filletedTransitionExitWire.brep");
+
+	BRepBuilderAPI_MakeFace filletedTransitionExit(filletedTransitionExitWire, true);
+	TopoDS_Face filletedTransitionExitPlane = filletedTransitionExit;
+	BRepTools::Write(filletedTransitionExitPlane, "filletedTransitionExitPlane.brep");
 
 	std::vector<TopoDS_Shape> filletedScrollShapes = mkFilletToNewScrollShapes(newShapeShellVector, 9);
 	
+	faceVectorWithoutTop.erase(faceVectorWithoutTop.begin() + 9);
+	faceVectorWithoutTop.erase(faceVectorWithoutTop.begin() + 9);
+
+	TopoDS_Shape newSewedVoluteShapeWithFillets = SewVoluteWith3DFillets(filletedScrollShapes, faceVectorWithoutTop, airExitPipeThruSectionWithoutBase_vec, filletedTransitionExitPlane, filletedTransition, 1.E-01);
+	BRepTools::Write(newSewedVoluteShapeWithFillets, "newSewedVoluteShapeWithFillets.brep");
+
+	//TopoDS_Shape newSewedVoluteShapeWithFillets = SewVoluteWithTransitionPipe(filletedScrollShapes, faceVectorWithoutTop, airExitPipeThruSectionWithoutBase_vec, my_newFaceVec, transitionExitPlane, filletedShapeWithTwoFaces, transitionFaceVec[1], 1.E-06);
+	//BRepTools::Write(newSewedVoluteShapeWithFillets, "newSewedVoluteShapeWithFillets.brep");
+
+	//TopoDS_Shape newSewedVoluteShape = SewVoluteWithTransitionPipe(newShapeShellVector, faceVectorWithoutTop, airExitPipeThruSectionWithoutBase_vec, my_newFaceVec, transitionExitPlane, filletedShapeWithTwoFaces, transitionFaceVec[1], 1.E-06);
+	//BRepTools::Write(newSewedVoluteShape, "newSewedVoluteShape.brep");
+
 	std::vector<TopoDS_Shape> solidVectorOfScrollShape = CreateSolidList(rotatedCrossSectionWires, angleVector);
 	TopoDS_Solid solidSmallScroll = TopoDS::Solid(solidVectorOfScrollShape[3]);
 	BRepTools::Write(solidSmallScroll, "solidSmallScroll.brep");
 
-	TopoDS_Shape newSewedVoluteShapeWithFillets = SewVoluteWithTransitionPipe(filletedScrollShapes, faceVectorWithoutTop, airExitPipeThruSectionWithoutBase_vec, my_newFaceVec, transitionExitPlane, filletedShapeWithTwoFaces, transitionFaceVec[1], 1.E-06);
-	BRepTools::Write(newSewedVoluteShapeWithFillets, "newSewedVoluteShapeWithFillets.brep");
-
-	TopoDS_Shape newSewedVoluteShape = SewVoluteWithTransitionPipe(newShapeShellVector, faceVectorWithoutTop, airExitPipeThruSectionWithoutBase_vec, my_newFaceVec, transitionExitPlane, filletedShapeWithTwoFaces, transitionFaceVec[1], 1.E-06);
-	BRepTools::Write(newSewedVoluteShape, "newSewedVoluteShape.brep");
-
-	TopoDS_Solid SolidNewVoluteShape = mkSolidOfSewedVoluteWithExitPipe(newSewedVoluteShape);
+	TopoDS_Solid SolidNewVoluteShape = mkSolidOfSewedVoluteWithExitPipe(newSewedVoluteShapeWithFillets);
 	BRepTools::Write(SolidNewVoluteShape, "SolidNewVoluteShape.brep");
 
 	TopoDS_Shape ReversedSolidVolute = ReverseShapeIfInsideOut(SolidNewVoluteShape);
 	BRepTools::Write(ReversedSolidVolute, "ReversedSolidVolute.brep");
-
-
 	
-	TopoDS_Shape filletedNewVoluteShape = ApplyFilletNewVolute(ReversedSolidVolute, edgesToBeFilleted, 6);
-	BRepTools::Write(filletedNewVoluteShape, "filletedNewVoluteShape.brep");
+	//TopoDS_Shape filletedNewVoluteShape = ApplyFilletNewVolute(ReversedSolidVolute, edgesToBeFilleted, 6);
+	//BRepTools::Write(filletedNewVoluteShape, "filletedNewVoluteShape.brep");
 
-	
 	//TopoDS_Shape booleanCutExitPipe = CreateThruSect(transitionStartSection, solidSmallScroll, newShapeShellVector[3]);
 
-
-	/////// Create new volute with 2D fillets ///////
+	/////// -------------- Create new volute with 2D fillets -----------------///////
 	std::vector<TopoDS_Wire> newCrossSectionWith2DFillets = createFilletedCrossSections_newShape(newCrossSectionVecWithoutFillets);
 
 	std::vector<TopoDS_Wire> rotatedFilletedCrossSectionWires = RotateCrossSections(newCrossSectionWith2DFillets, angleVector);
@@ -3359,7 +3470,6 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 
 	std::vector<TopoDS_Shape> filletedSolidVector = CreateSolidList(rotatedFilletedCrossSectionWires, angleVector);
 
-	
 	// create filleted rectangle
 	//std::vector<TopoDS_Edge> edgesWith2dFillets = create2dFilletsForSquare(6);
 	//TopoDS_Wire rectWire2dFillets = Create2dWire(edgesWith2dFillets);
@@ -3373,7 +3483,6 @@ std::vector<TopoDS_Shape> GenerateVolute::CreateNewCrossSection()
 	// Filleted exit pipe
 	//TopoDS_Shape FilletedThruSectPipe_NewShape = ThruSectExitPipe(rotatedFilletedCrossSectionWires[0], filletedTrnsfWire, Standard_False);
 	//BRepTools::Write(FilletedThruSectPipe_NewShape, "FilletedThruSectPipe_NewShape.brep");
-
 
 	return newShapeShellVector;
 }
